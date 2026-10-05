@@ -28,6 +28,7 @@ export class UIManager {
   private readonly right: HTMLElement;
   private readonly bottom: HTMLElement;
   private readonly strip: HTMLElement;
+  private readonly buildBarSlot: HTMLElement;
   private readonly mobileNav: HTMLElement;
   private readonly sheetLayer: HTMLElement;
   readonly overlayLayer: HTMLElement;
@@ -53,8 +54,9 @@ export class UIManager {
     this.right = h('aside', { class: 'hud-right' }, h('div', { class: 'panel res-dock' }, this.resources.el));
     this.bottom = h('div', { class: 'hud-bottom' }, this.feed.el);
     this.strip = h('div', { class: 'hud-strip' });
+    this.buildBarSlot = h('div', { class: 'hud-buildbar' });
     this.mobileNav = h('nav', { class: 'mobile-nav' });
-    this.hud = h('div', { class: 'hud hidden' }, h('div', { class: 'hud-top' }, this.topBar.el), this.strip, this.left, this.right, this.bottom, this.mobileNav);
+    this.hud = h('div', { class: 'hud hidden' }, h('div', { class: 'hud-top' }, this.topBar.el), this.strip, this.left, this.right, this.bottom, this.buildBarSlot, this.mobileNav);
     this.sheetLayer = h('div', { class: 'sheet-layer' });
     this.sheetLayer.addEventListener('click', (e) => {
       if (e.target === this.sheetLayer) this.closeWindow();
@@ -104,6 +106,10 @@ export class UIManager {
     this.mobileNavEntries = mobile;
     this.topBar.setNav(desktop);
     this.renderMobileNav();
+  }
+
+  mountBuildBar(el: HTMLElement): void {
+    this.buildBarSlot.replaceChildren(el);
   }
 
   /** Compact resource chips shown under the mobile top bar. */

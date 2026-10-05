@@ -12,10 +12,13 @@ import '@babylonjs/core/Culling/ray';
 import { Scene } from '@babylonjs/core/scene';
 import type { Game } from '../game/Game';
 import { QUALITY_PROFILES, type QualityProfile, type Settings } from '../settings/Settings';
+import { BuildController } from './BuildController';
 import { CameraController } from './CameraController';
+import { Effects } from './Effects';
 import { Environment } from './Environment';
 import { MaterialLibrary } from './Materials';
 import { ModelLibrary } from './ModelLibrary';
+import { SelectionMarker } from './SelectionMarker';
 import { ShadowManager } from './ShadowManager';
 import { StationView } from './StationView';
 
@@ -37,9 +40,13 @@ export class World {
   readonly models: ModelLibrary;
   readonly shadows: ShadowManager;
   readonly station: StationView;
+  readonly effects: Effects;
+  readonly build: BuildController;
+  readonly selection: SelectionMarker;
   private profile: QualityProfile;
   private pipeline: DefaultRenderingPipeline | null = null;
   private glow: GlowLayer | null = null;
+  private readonly glowExcluded = new Set<Mesh>();
   private fpsLimit = 60;
   private lastFrame = performance.now();
   private elapsed = 0;
@@ -79,7 +86,10 @@ export class World {
     this.materials = new MaterialLibrary(this.scene, { textureSize: this.profile.textureSize, normalMaps: this.profile.normalMaps });
     this.models = new ModelLibrary(this.scene, this.materials, this.profile.detailDistance);
     this.shadows = new ShadowManager(this.env.sun);
-    this.station = new StationView(this.scene, this.models, this.shadows, this.env.sunDirection);
+    this.effects = new Effects(this.scene);
+    this.station = new StationView(this.scene, this.models, this.shadows, this.effects, this.env.sunDirection);
+    this.build = new BuildController(this.scene, this.models, () => this.game, (mesh) => this.excludeFromGlow(mesh));
+    this.selection = new SelectionMarker(this.scene);
     for (const rock of this.env.nearRocks) rock.receiveShadows = true;
 
     this.applySettings(settings);
@@ -98,6 +108,7 @@ export class World {
     const dpr = Math.min(window.devicePixelRatio || 1, this.profile.maxPixelRatio);
     this.engine.setHardwareScalingLevel(1 / Math.max(0.35, dpr * settings.resolutionScale));
     this.fpsLimit = settings.fpsLimit;
+    this.effects.setLevel(settings.particles);
     this.shadows.configure(settings.shadows, this.profile.shadowMapSize);
     this.env.setLensFlaresEnabled(this.profile.lensFlares);
 
@@ -134,10 +145,18 @@ export class World {
       this.glow = new GlowLayer('glow', this.scene, { mainTextureRatio: 0.5, blurKernelSize: 32 });
       this.glow.intensity = 0.75;
       for (const mesh of this.scene.meshes) if (mesh.renderingGroupId === 0 && mesh instanceof Mesh) this.glow.addExcludedMesh(mesh);
+      for (const mesh of this.glowExcluded) this.glow.addExcludedMesh(mesh);
     } else if (!settings.bloom && this.glow) {
       this.glow.dispose();
       this.glow = null;
     }
+  }
+
+  /** Keeps a mesh out of the glow layer (holograms that should not bloom). */
+  excludeFromGlow(mesh: Mesh): void {
+    this.glowExcluded.add(mesh);
+    mesh.onDisposeObservable.addOnce(() => this.glowExcluded.delete(mesh));
+    this.glow?.addExcludedMesh(mesh);
   }
 
   attachGame(game: Game): void {
@@ -157,11 +176,14 @@ export class World {
         this.station.rebuildLinks(game);
       }),
       bus.on('moduleChanged', ({ module }) => this.station.updateModule(module)),
+      bus.on('layoutChanged', () => this.build.refresh()),
     );
   }
 
   detachGame(): void {
     for (const fn of this.unsubscribe.splice(0)) fn();
+    this.build.end();
+    this.selection.hide();
     this.game = null;
   }
 
@@ -187,6 +209,8 @@ export class World {
       this.env.update(dt, this.camera.camera.position);
       this.materials.update(this.elapsed);
       if (this.game) this.station.update(dt, this.game);
+      this.build.update(dt);
+      this.selection.update(dt);
       this.scene.render();
     });
   }
@@ -222,6 +246,17 @@ export class World {
       for (const fn of this.tapListeners) fn({ x, y, pick });
     });
     c.addEventListener('contextmenu', (e) => e.preventDefault());
+    let lastHover = 0;
+    c.addEventListener('pointermove', (e) => {
+      if (!this.build.active || e.pointerType !== 'mouse' || e.buttons !== 0) return;
+      const now = performance.now();
+      if (now - lastHover < 50) return;
+      lastHover = now;
+      const rect = c.getBoundingClientRect();
+      const scale = this.engine.getRenderWidth() / rect.width;
+      const pick = this.pick((e.clientX - rect.left) * scale, (e.clientY - rect.top) * scale, (m) => this.build.isMarker(m));
+      this.build.hover(pick?.pickedMesh ?? null);
+    });
   }
 
   dispose(): void {

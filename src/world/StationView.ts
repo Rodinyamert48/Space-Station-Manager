@@ -1,3 +1,4 @@
+import { Color4 } from '@babylonjs/core/Maths/math.color';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh';
 import type { InstancedMesh } from '@babylonjs/core/Meshes/instancedMesh';
@@ -9,6 +10,7 @@ import { CELL_SIZE, DIR_VEC, PORT_OFFSET, type Dir, type Vec3i } from '../data/g
 import { MODULES, type ModuleType } from '../data/modules';
 import type { Game } from '../game/Game';
 import type { ModuleState } from '../game/state';
+import type { EffectHandle, Effects } from './Effects';
 import type { ModelLibrary } from './ModelLibrary';
 
 export interface ShadowSink {
@@ -24,6 +26,7 @@ interface ModuleVisual {
   instances: InstancedMesh[];
   rotor: TransformNode | null;
   scaffold: TransformNode | null;
+  sparks: EffectHandle | null;
   shown: number;
 }
 
@@ -62,6 +65,7 @@ export class StationView {
     private readonly scene: Scene,
     private readonly library: ModelLibrary,
     private readonly shadows: ShadowSink,
+    private readonly effects: Effects,
     sunDirection: Vector3,
   ) {
     this.linkRoot = new TransformNode('stationLinks', scene);
@@ -93,7 +97,7 @@ export class StationView {
       instances.push(...this.library.instantiate(template.rotor, rotor, `module-${m.id}-rotor`, true));
     }
     for (const inst of instances) this.shadows.addCaster(inst);
-    const visual: ModuleVisual = { id: m.id, type: m.type, root, body, instances, rotor, scaffold: null, shown: 1 };
+    const visual: ModuleVisual = { id: m.id, type: m.type, root, body, instances, rotor, scaffold: null, sparks: null, shown: 1 };
     this.visuals.set(m.id, visual);
     this.applyStatus(visual, m);
   }
@@ -102,6 +106,7 @@ export class StationView {
     const v = this.visuals.get(id);
     if (!v) return;
     for (const inst of v.instances) this.shadows.removeCaster(inst);
+    v.sparks?.stop();
     v.scaffold?.dispose();
     v.root.dispose();
     this.visuals.delete(id);
@@ -122,9 +127,13 @@ export class StationView {
       }
       v.shown = this.constructionScale(m);
       v.body.scaling.setAll(v.shown);
+      if (!v.sparks) v.sparks = this.effects.constructionSparks(v.root.position, 3.2);
     } else {
+      if (v.scaffold) this.effects.burst(v.root.position, new Color4(0.5, 0.9, 1, 1), 160, 9, 0.9);
       v.scaffold?.dispose();
       v.scaffold = null;
+      v.sparks?.stop();
+      v.sparks = null;
     }
   }
 
