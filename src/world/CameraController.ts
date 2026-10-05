@@ -2,7 +2,7 @@ import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera';
 import '@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput';
 import type { ArcRotateCameraPointersInput } from '@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput';
 import type { ArcRotateCameraMouseWheelInput } from '@babylonjs/core/Cameras/Inputs/arcRotateCameraMouseWheelInput';
-import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Vector2, Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Scene } from '@babylonjs/core/scene';
 import { clamp, easeInOutCubic, lerp } from '../core/math';
 
@@ -115,6 +115,11 @@ export class CameraController {
   setInputEnabled(enabled: boolean): void {
     if (enabled) this.camera.attachControl(this.canvas, true, false);
     else this.camera.detachControl();
+  }
+
+  /** Shifts the framing so the station sits to the right of a left-aligned menu. */
+  setMenuFraming(enabled: boolean): void {
+    this.camera.targetScreenOffset = enabled ? new Vector2(30, -6) : Vector2.Zero();
   }
 
   /** Slow automatic orbit (main menu background). Zero disables it. */

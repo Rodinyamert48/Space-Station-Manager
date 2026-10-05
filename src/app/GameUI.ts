@@ -2,7 +2,7 @@ import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { ModuleType } from '../data/modules';
 import type { Game } from '../game/Game';
 import type { GameSpeed } from '../game/state';
-import { t } from '../i18n/i18n';
+import { onLanguageChange, t } from '../i18n/i18n';
 import type { UIContext } from '../ui/context';
 import { h } from '../ui/dom';
 import { EventDialog } from '../ui/EventDialog';
@@ -47,8 +47,13 @@ export class GameUI {
     private readonly ctx: UIContext,
   ) {
     this.buildPanel = new BuildPanel(ctx, (type) => this.beginBuild(type));
-    const sidebar = h('div', { class: 'panel build-dock' }, h('div', { class: 'panel-title' }, icon('build'), t('build.title')), this.buildPanel.el);
+    const buildTitle = h('span', { text: t('build.title') });
+    const sidebar = h('div', { class: 'panel build-dock' }, h('div', { class: 'panel-title' }, icon('build'), buildTitle), this.buildPanel.el);
     ui.setLeftContent(sidebar);
+    onLanguageChange(() => {
+      buildTitle.textContent = t('build.title');
+      this.buildPanel.rebuild();
+    });
 
     this.buildWindow = new BuildWindow(ctx, (type) => this.beginBuild(type));
     this.moduleWindow = new ModuleWindow(ctx, ui.overlayLayer, (id) => this.focusModule(id));
@@ -215,6 +220,7 @@ export class GameUI {
   }
 
   private onTap(e: TapEvent): void {
+    if (!this.ctx.game()) return;
     if (this.world.build.active) {
       const pick = this.world.pick(e.x, e.y, (m) => this.world.build.isMarker(m));
       if (this.world.build.select(pick?.pickedMesh ?? null)) this.confirmBuild();
