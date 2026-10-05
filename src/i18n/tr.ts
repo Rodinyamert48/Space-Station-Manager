@@ -177,4 +177,25 @@ export const tr: Record<keyof typeof en, string> = {
   'tech.advancedDocking.name': 'İleri Kenetlenme',
   'tech.aiManagement.name': 'Yapay Zekâ Yönetimi',
   'tech.deepSpaceTravel.name': 'Derin Uzay Yolculuğu',
+
+  'notice.resourceLow': '{resource} azalıyor!',
+  'notice.resourceOut': '{resource} tükendi! Mürettebat zor durumda.',
+  'notice.powerDeficit': 'Enerji açığı: modüller %{pct} kapasiteyle çalışıyor.',
+  'notice.fuelLow': 'Reaktör yakıtı azalıyor.',
+  'notice.storageFull': '{resource} deposu dolu. Depo Modülü inşa edin veya fazlasını satın.',
+
+  'res.capacity': 'Kapasite {v}',
+  'res.net': 'Net {v}/sa',
+  'res.power': 'Güç şebekesi',
+  'res.powerBalance': '{prod} üretim · {use} tüketim',
+  'res.population': 'Nüfus',
+  'res.crewBeds': '{crew}/{beds} mürettebat',
+  'res.battery': 'Batarya',
+  'res.efficiency': 'Verim',
+
+  'label.damaged': '⚠ HASARLI',
+  'label.offline': '⚠ DEVRE DIŞI',
+  'label.disabled': '⏻ KAPALI',
+  'label.noPower': '⚡ DÜŞÜK ENERJİ',
+  'label.lowOutput': '▼ DÜŞÜK ÜRETİM',
 };

@@ -42,6 +42,10 @@ export class EconomySystem {
     s.stats.creditsSpent -= amount;
   }
 
+  recordEnergyUse(amount: number): void {
+    this.game.state.economy.energyConsumedToday += amount;
+  }
+
   netToday(): number {
     const { income, expenses } = this.game.state.economy.today;
     let net = 0;

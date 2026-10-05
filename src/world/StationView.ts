@@ -10,7 +10,9 @@ import { CELL_SIZE, DIR_VEC, PORT_OFFSET, type Dir, type Vec3i } from '../data/g
 import { MODULES, type ModuleType } from '../data/modules';
 import type { Game } from '../game/Game';
 import type { ModuleState } from '../game/state';
+import { t } from '../i18n/i18n';
 import type { EffectHandle, Effects } from './Effects';
+import type { WorldLabels } from './Labels';
 import type { ModelLibrary } from './ModelLibrary';
 
 export interface ShadowSink {
@@ -60,12 +62,14 @@ export class StationView {
   private linkInstances: InstancedMesh[] = [];
   private readonly sunYaw: number;
   private time = 0;
+  private labelTimer = 0;
 
   constructor(
     private readonly scene: Scene,
     private readonly library: ModelLibrary,
     private readonly shadows: ShadowSink,
     private readonly effects: Effects,
+    private readonly labels: WorldLabels,
     sunDirection: Vector3,
   ) {
     this.linkRoot = new TransformNode('stationLinks', scene);
@@ -106,6 +110,7 @@ export class StationView {
     const v = this.visuals.get(id);
     if (!v) return;
     for (const inst of v.instances) this.shadows.removeCaster(inst);
+    this.labels.remove(`module-${id}`);
     v.sparks?.stop();
     v.scaffold?.dispose();
     v.root.dispose();
@@ -175,6 +180,11 @@ export class StationView {
 
   update(dt: number, game: Game): void {
     this.time += dt;
+    this.labelTimer += dt;
+    if (this.labelTimer > 0.5) {
+      this.labelTimer = 0;
+      this.updateLabels(game);
+    }
     for (const v of this.visuals.values()) {
       const m = game.station.getModule(v.id);
       if (!m) continue;
@@ -192,6 +202,28 @@ export class StationView {
         else if (v.type === 'defense') v.rotor.rotation.y = Math.sin(this.time * 0.25 + v.id) * 1.1;
       }
     }
+  }
+
+  /** Floating alerts over modules that are not working normally. */
+  private updateLabels(game: Game): void {
+    const keep = new Set<string>();
+    const flows = game.resources.flows;
+    for (const v of this.visuals.values()) {
+      const m = game.station.getModule(v.id);
+      if (!m || m.status !== 'active') continue;
+      const def = MODULES[m.type];
+      let alert: { text: string; color: string } | null = null;
+      if (m.damaged) alert = { text: t('label.damaged'), color: '#ff5a4f' };
+      else if (m.offlineUntil > game.hour) alert = { text: t('label.offline'), color: '#ff5a4f' };
+      else if (!m.enabled) alert = { text: t('label.disabled'), color: '#8ea3bb' };
+      else if ((def.consumes.energy ?? 0) > 0 && flows.powerRatio < 0.98) alert = { text: t('label.noPower'), color: '#ffb547' };
+      else if ((flows.efficiency.get(m.id) ?? 1) < 0.5) alert = { text: t('label.lowOutput'), color: '#ffb547' };
+      if (!alert) continue;
+      const key = `module-${v.id}`;
+      keep.add(key);
+      this.labels.set(key, v.root, alert.text, alert.color, -46);
+    }
+    this.labels.prune('module-', keep);
   }
 
   /** Resolves a picked mesh to the module it belongs to. */

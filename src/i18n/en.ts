@@ -175,4 +175,25 @@ export const en = {
   'tech.advancedDocking.name': 'Advanced Docking',
   'tech.aiManagement.name': 'AI Management',
   'tech.deepSpaceTravel.name': 'Deep Space Travel',
+
+  'notice.resourceLow': '{resource} running low!',
+  'notice.resourceOut': '{resource} depleted! The crew is suffering.',
+  'notice.powerDeficit': 'Power deficit: modules running at {pct}%.',
+  'notice.fuelLow': 'Reactor fuel running low.',
+  'notice.storageFull': '{resource} storage is full. Build Storage Modules or sell surplus.',
+
+  'res.capacity': 'Capacity {v}',
+  'res.net': 'Net {v}/h',
+  'res.power': 'Power grid',
+  'res.powerBalance': '{prod} produced · {use} used',
+  'res.population': 'Population',
+  'res.crewBeds': '{crew}/{beds} crew',
+  'res.battery': 'Battery',
+  'res.efficiency': 'Efficiency',
+
+  'label.damaged': '⚠ DAMAGED',
+  'label.offline': '⚠ OFFLINE',
+  'label.disabled': '⏻ POWERED DOWN',
+  'label.noPower': '⚡ LOW POWER',
+  'label.lowOutput': '▼ LOW OUTPUT',
 } as const;

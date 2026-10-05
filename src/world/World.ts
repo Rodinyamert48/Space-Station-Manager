@@ -15,6 +15,7 @@ import { QUALITY_PROFILES, type QualityProfile, type Settings } from '../setting
 import { BuildController } from './BuildController';
 import { CameraController } from './CameraController';
 import { Effects } from './Effects';
+import { WorldLabels } from './Labels';
 import { Environment } from './Environment';
 import { MaterialLibrary } from './Materials';
 import { ModelLibrary } from './ModelLibrary';
@@ -43,6 +44,7 @@ export class World {
   readonly effects: Effects;
   readonly build: BuildController;
   readonly selection: SelectionMarker;
+  readonly labels: WorldLabels;
   private profile: QualityProfile;
   private pipeline: DefaultRenderingPipeline | null = null;
   private glow: GlowLayer | null = null;
@@ -87,7 +89,8 @@ export class World {
     this.models = new ModelLibrary(this.scene, this.materials, this.profile.detailDistance);
     this.shadows = new ShadowManager(this.env.sun);
     this.effects = new Effects(this.scene);
-    this.station = new StationView(this.scene, this.models, this.shadows, this.effects, this.env.sunDirection);
+    this.labels = new WorldLabels(this.scene, this.engine);
+    this.station = new StationView(this.scene, this.models, this.shadows, this.effects, this.labels, this.env.sunDirection);
     this.build = new BuildController(this.scene, this.models, () => this.game, (mesh) => this.excludeFromGlow(mesh));
     this.selection = new SelectionMarker(this.scene);
     for (const rock of this.env.nearRocks) rock.receiveShadows = true;
@@ -100,6 +103,7 @@ export class World {
 
   private readonly onResize = (): void => {
     this.engine.resize();
+    this.labels.updateScale();
   };
 
   /** Applies render-related settings live. */
@@ -107,6 +111,7 @@ export class World {
     this.profile = QUALITY_PROFILES[settings.quality];
     const dpr = Math.min(window.devicePixelRatio || 1, this.profile.maxPixelRatio);
     this.engine.setHardwareScalingLevel(1 / Math.max(0.35, dpr * settings.resolutionScale));
+    this.labels?.updateScale();
     this.fpsLimit = settings.fpsLimit;
     this.effects.setLevel(settings.particles);
     this.shadows.configure(settings.shadows, this.profile.shadowMapSize);
@@ -208,7 +213,11 @@ export class World {
       this.camera.update(dt);
       this.env.update(dt, this.camera.camera.position);
       this.materials.update(this.elapsed);
-      if (this.game) this.station.update(dt, this.game);
+      if (this.game) {
+        this.station.update(dt, this.game);
+        const ratio = this.game.resources.flows.powerRatio;
+        this.materials.setBrownout(ratio < 0.98 ? 0.3 + 0.7 * ratio : 1);
+      }
       this.build.update(dt);
       this.selection.update(dt);
       this.scene.render();

@@ -3,6 +3,7 @@ import { Rng } from '../core/Rng';
 import type { TKey, TParams } from '../i18n/i18n';
 import type { Rotation, Vec3i } from '../data/grid';
 import { DEMOLISH_REFUND, MODULES, type CostKey, type ModuleType } from '../data/modules';
+import { TECHS, baseModifiers, type Modifiers } from '../data/research';
 import type { GameEvents, Notice, NoticeLevel } from './events';
 import type { GameSpeed, GameState, ModuleState } from './state';
 import { EconomySystem } from './systems/EconomySystem';
@@ -33,6 +34,7 @@ export class Game {
   readonly economy: EconomySystem;
   private accumulator = 0;
   private noticeId = 1;
+  private modifierCache: { key: string; value: Modifiers } | null = null;
 
   constructor(public readonly state: GameState) {
     this.rng = new Rng(state.rngState);
@@ -86,6 +88,7 @@ export class Game {
     const before = this.state.time.hour;
     this.state.time.hour = before + dt;
     this.advanceConstruction(dt);
+    this.resources.tick(dt);
     if (Math.floor(this.state.time.hour) !== Math.floor(before)) {
       this.bus.emit('hour', { hour: Math.floor(this.state.time.hour) });
     }
@@ -167,6 +170,35 @@ export class Game {
     if (!m || MODULES[m.type].unique || m.enabled === enabled) return;
     m.enabled = enabled;
     this.bus.emit('moduleChanged', { module: m });
+  }
+
+  /** Combined bonuses from completed research. */
+  modifiers(): Modifiers {
+    const key = this.state.research.completed.join(',');
+    if (this.modifierCache?.key === key) return this.modifierCache.value;
+    const mods = baseModifiers();
+    for (const id of this.state.research.completed) {
+      for (const [k, v] of Object.entries(TECHS[id].effects) as [keyof Modifiers, number][]) mods[k] += v;
+    }
+    this.modifierCache = { key, value: mods };
+    return mods;
+  }
+
+  /** Output factor of a module from staffing and crew morale (1 = full output). */
+  moduleWorkFactor(_m: ModuleState): number {
+    return 1;
+  }
+
+  /** Crew berths from built modules (plus research bonuses). */
+  crewCapacity(): number {
+    let beds = 0;
+    for (const m of this.station.modules) if (m.status === 'active') beds += MODULES[m.type].crewCapacity ?? 0;
+    return Math.floor(beds * (1 + this.modifiers().crewCapacity));
+  }
+
+  /** People aboard who breathe, drink and eat. */
+  population(): number {
+    return this.state.crew.members.length;
   }
 
   isModuleUnlocked(type: ModuleType): boolean {

@@ -22,6 +22,8 @@ export class ModuleWindow extends GameWindow {
   private moduleId: number | null = null;
   private statusEl: HTMLElement | null = null;
   private progressFill: HTMLElement | null = null;
+  private effFill: HTMLElement | null = null;
+  private effText: HTMLElement | null = null;
   private lastStatus = '';
 
   constructor(
@@ -64,9 +66,18 @@ export class ModuleWindow extends GameWindow {
     );
     this.body.append(head, h('p', { class: 'mod-desc', text: tk(`module.${m.type}.desc`) }));
 
+    this.effFill = null;
+    this.effText = null;
     if (m.status === 'constructing') {
       this.progressFill = h('div', { class: 'bar-fill' });
       this.body.append(h('div', { class: 'bar' }, this.progressFill));
+    } else if (Object.keys(def.produces).length > 0 || Object.keys(def.consumes).length > 0) {
+      this.effFill = h('div', { class: 'bar-fill' });
+      this.effText = h('span', { class: 'eff-value' });
+      this.body.append(
+        h('div', { class: 'eff-row' }, h('span', { class: 'section-title', text: t('res.efficiency') }), this.effText),
+        h('div', { class: 'bar' }, this.effFill),
+      );
     }
     if (flows.produces.length) this.body.append(this.section(t('info.produces'), h('div', { class: 'chips' }, ...flows.produces)));
     if (flows.consumes.length) this.body.append(this.section(t('info.consumes'), h('div', { class: 'chips' }, ...flows.consumes)));
@@ -141,6 +152,12 @@ export class ModuleWindow extends GameWindow {
       this.statusEl.className = `status-pill st-${status}`;
     }
     if (this.progressFill) this.progressFill.style.width = `${pct}%`;
+    if (this.effFill && this.effText) {
+      const eff = Math.round((game.resources.flows.efficiency.get(m.id) ?? 0) * 100);
+      this.effFill.style.width = `${Math.min(100, eff)}%`;
+      setText(this.effText, `${eff}%`);
+      this.effText.className = `eff-value${eff < 60 ? ' low' : ''}`;
+    }
     if (this.lastStatus && this.lastStatus !== m.status) this.rebuild();
     this.lastStatus = m.status;
   }
