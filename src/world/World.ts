@@ -16,9 +16,11 @@ import { BuildController } from './BuildController';
 import { CameraController } from './CameraController';
 import { CrewView } from './CrewView';
 import { Effects } from './Effects';
+import { EventFx } from './EventFx';
 import { WorldLabels } from './Labels';
 import { Environment } from './Environment';
 import { MaterialLibrary } from './Materials';
+import { MegaStructure } from './MegaStructure';
 import { ModelLibrary } from './ModelLibrary';
 import { SelectionMarker } from './SelectionMarker';
 import { ShadowManager } from './ShadowManager';
@@ -49,6 +51,8 @@ export class World {
   readonly labels: WorldLabels;
   readonly ships: ShipView;
   readonly crew: CrewView;
+  readonly mega: MegaStructure;
+  readonly fx: EventFx;
   private profile: QualityProfile;
   private pipeline: DefaultRenderingPipeline | null = null;
   private glow: GlowLayer | null = null;
@@ -96,6 +100,8 @@ export class World {
     this.labels = new WorldLabels(this.scene, this.engine);
     this.station = new StationView(this.scene, this.models, this.shadows, this.effects, this.labels, this.env.sunDirection);
     this.crew = new CrewView(this.scene);
+    this.mega = new MegaStructure(this.scene, this.materials, this.effects, this.shadows);
+    this.fx = new EventFx(this.scene, this.materials, this.effects, this.camera);
     this.ships = new ShipView(this.scene, this.models, this.materials, this.effects, this.labels, this.shadows);
     this.build = new BuildController(this.scene, this.models, () => this.game, (mesh) => this.excludeFromGlow(mesh));
     this.selection = new SelectionMarker(this.scene);
@@ -178,13 +184,14 @@ export class World {
     this.station.syncAll(game);
     this.ships.syncAll(game);
     this.crew.syncAll(game);
-    this.camera.setStationRadius(this.station.radius(game));
+    this.mega.setStage(game.state.stage, false);
+    this.updateCameraLimits(game);
     const bus = game.bus;
     this.unsubscribe.push(
       bus.on('moduleAdded', ({ module }) => {
         this.station.addModule(module);
         this.station.rebuildLinks(game);
-        this.camera.setStationRadius(this.station.radius(game));
+        this.updateCameraLimits(game);
       }),
       bus.on('moduleRemoved', ({ module }) => {
         this.station.removeModule(module.id);
@@ -206,12 +213,31 @@ export class World {
         this.crew.syncVisitors(ship.id, game);
       }),
       bus.on('crewAdded', ({ member }) => this.crew.addCrew(member, game)),
+      bus.on('stageChanged', ({ stage }) => {
+        this.mega.setStage(stage, true);
+        this.updateCameraLimits(game);
+      }),
+      bus.on('pirateAttack', ({ repelled }) => {
+        const turrets = game.station.modules.filter((m) => m.type === 'defense' && m.status === 'active').map((m) => this.station.modulePosition(m.id)).filter((p): p is NonNullable<typeof p> => !!p);
+        this.fx.pirateRaid(repelled, turrets, this.station.radius(game));
+      }),
+      bus.on('eventResolved', ({ event }) => {
+        if (event.eventId === 'meteorShower') this.fx.meteorShower(this.station.radius(game));
+      }),
+      bus.on('meteorImpact', ({ moduleId }) => {
+        const pos = this.station.modulePosition(moduleId);
+        if (pos) window.setTimeout(() => this.fx.impact(pos), 1800);
+      }),
       bus.on('crewRemoved', ({ member }) => this.crew.removeCrew(member.id)),
       bus.on('crewMoved', ({ member, from, to }) => this.crew.moveCrew(member, from, to, game)),
       bus.on('traded', ({ ship, qty }) => {
         if (ship) this.ships.launchDrones(ship, qty);
       }),
     );
+  }
+
+  private updateCameraLimits(game: Game): void {
+    this.camera.setStationRadius(Math.max(this.station.radius(game), this.mega.radius));
   }
 
   detachGame(): void {
@@ -250,6 +276,8 @@ export class World {
         this.materials.setBrownout(ratio < 0.98 ? 0.3 + 0.7 * ratio : 1);
       }
       this.build.update(dt);
+      this.mega.update(dt);
+      this.fx.update(dt);
       this.selection.update(dt);
       this.scene.render();
     });

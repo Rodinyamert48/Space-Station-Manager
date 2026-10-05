@@ -230,6 +230,7 @@ export class ResourceSystem {
       const mult = res === 'water' ? Math.max(0.3, 1 + mods.waterUse) : 1;
       consumption[res] += population * PERSON_NEEDS[res] * mult;
     }
+    consumption.oxygen += game.oxygenLeak();
 
     return { production, consumption, efficiency, energyProduction, energyDemand, powerRatio, population };
   }

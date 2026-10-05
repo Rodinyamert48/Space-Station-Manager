@@ -108,6 +108,20 @@ export class ModuleWindow extends GameWindow {
 
     const actions = h('div', { class: 'win-actions' });
     actions.append(button(h('span', { class: 'btn-inner' }, icon('focus'), t('info.focus')), () => this.onFocus(m.id), 'btn ghost'));
+    if (m.damaged) {
+      const cost = game.repairCost(m);
+      actions.append(
+        button(h('span', { class: 'btn-inner' }, icon('wrench'), t('info.repairCost', cost)), () => {
+          const result = game.repairModule(m.id);
+          if (result.ok) this.ctx.playSound('build');
+          else {
+            this.ctx.playSound('error');
+            game.notify('warning', 'info.repairError');
+          }
+          this.rebuild();
+        }, 'btn success'),
+      );
+    }
     if (!def.unique && m.status === 'active') {
       actions.append(
         button(h('span', { class: 'btn-inner' }, icon('power'), m.enabled ? t('info.disable') : t('info.enable')), () => {
@@ -174,7 +188,8 @@ export class ModuleWindow extends GameWindow {
       setText(this.effText, `${eff}%`);
       this.effText.className = `eff-value${eff < 60 ? ' low' : ''}`;
     }
-    if (this.lastStatus && this.lastStatus !== m.status) this.rebuild();
-    this.lastStatus = m.status;
+    const signature = `${m.status}|${m.damaged}|${m.enabled}`;
+    if (this.lastStatus && this.lastStatus !== signature) this.rebuild();
+    this.lastStatus = signature;
   }
 }

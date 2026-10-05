@@ -1,9 +1,11 @@
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { ModuleType } from '../data/modules';
 import type { Game } from '../game/Game';
+import type { GameSpeed } from '../game/state';
 import { t } from '../i18n/i18n';
 import type { UIContext } from '../ui/context';
 import { h } from '../ui/dom';
+import { EventDialog } from '../ui/EventDialog';
 import { BuildBar } from '../ui/hud/BuildBar';
 import { BuildPanel } from '../ui/hud/BuildPanel';
 import { ResourceStrip } from '../ui/hud/ResourceStrip';
@@ -13,10 +15,13 @@ import { BuildWindow } from '../ui/windows/BuildWindow';
 import { CrewWindow } from '../ui/windows/CrewWindow';
 import { EconomyWindow } from '../ui/windows/EconomyWindow';
 import { MarketWindow } from '../ui/windows/MarketWindow';
+import { MissionsWindow } from '../ui/windows/MissionsWindow';
 import { ModuleWindow } from '../ui/windows/ModuleWindow';
+import { MoreWindow } from '../ui/windows/MoreWindow';
 import { ResearchWindow } from '../ui/windows/ResearchWindow';
 import { ResourcesWindow } from '../ui/windows/ResourcesWindow';
 import { ShipsWindow } from '../ui/windows/ShipsWindow';
+import { StatsWindow } from '../ui/windows/StatsWindow';
 import { TradeWindow } from '../ui/windows/TradeWindow';
 import type { TapEvent, World } from '../world/World';
 
@@ -31,8 +36,10 @@ export class GameUI {
   private readonly moduleWindow: ModuleWindow;
   private readonly shipsWindow: ShipsWindow;
   private readonly tradeWindow: TradeWindow;
+  private readonly eventDialog: EventDialog;
   private selectedModule: number | null = null;
   private refreshTimer = 0;
+  private speedBeforeEvent: GameSpeed | null = null;
 
   constructor(
     private readonly ui: UIManager,
@@ -55,6 +62,17 @@ export class GameUI {
     ui.registerWindow(new MarketWindow(ctx));
     ui.registerWindow(new EconomyWindow(ctx));
     ui.registerWindow(new ResearchWindow(ctx));
+    ui.registerWindow(new MissionsWindow(ctx));
+    ui.registerWindow(new StatsWindow(ctx));
+    ui.registerWindow(
+      new MoreWindow(ctx, [
+        { id: 'economy', icon: 'credits', label: () => t('eco.nav'), action: () => ui.openWindow('economy') },
+        { id: 'stats', icon: 'stats', label: () => t('stats.nav'), action: () => ui.openWindow('stats') },
+        { id: 'resources', icon: 'energy', label: () => t('hud.resources'), action: () => ui.openWindow('resources') },
+        { id: 'menu', icon: 'menu', label: () => t('hud.menu'), action: () => this.ctx.openMainMenu() },
+      ]),
+    );
+    this.eventDialog = new EventDialog(ui.overlayLayer, ctx);
     ui.registerWindow(new CrewWindow(ctx, ui.overlayLayer, (id) => {
       this.selectModule(id);
       this.focusModule(id);
@@ -80,7 +98,9 @@ export class GameUI {
         { id: 'market', icon: 'market', label: () => t('market.nav') },
         { id: 'crew', icon: 'crew', label: () => t('crew.nav') },
         { id: 'research', icon: 'research', label: () => t('research.nav') },
+        { id: 'missions', icon: 'missions', label: () => t('missions.nav') },
         { id: 'economy', icon: 'credits', label: () => t('eco.nav') },
+        { id: 'stats', icon: 'stats', label: () => t('stats.nav') },
       ],
       [
         { id: 'build', icon: 'build', label: () => t('hud.build') },
@@ -88,8 +108,8 @@ export class GameUI {
         { id: 'market', icon: 'market', label: () => t('market.nav') },
         { id: 'crew', icon: 'crew', label: () => t('crew.nav') },
         { id: 'research', icon: 'research', label: () => t('research.nav') },
-        { id: 'economy', icon: 'credits', label: () => t('eco.nav') },
-        { id: 'resources', icon: 'energy', label: () => t('hud.resources') },
+        { id: 'missions', icon: 'missions', label: () => t('missions.nav') },
+        { id: 'more', icon: 'menu', label: () => t('hud.more') },
       ],
     );
     ui.focusNotice = (n) => {
@@ -108,10 +128,31 @@ export class GameUI {
   bind(game: Game): void {
     this.cancelBuild();
     this.selectModule(null);
+    this.eventDialog.close();
+    this.speedBeforeEvent = null;
     this.buildPanel.rebuild();
     this.ui.track(game.bus.on('moduleRemoved', ({ module }) => {
       if (module.id === this.selectedModule) this.selectModule(null);
     }));
+    this.ui.track(game.bus.on('eventTriggered', ({ event }) => {
+      this.ctx.playSound('warning');
+      game.notify(game.events.severity(event.eventId), 'notice.eventIncoming', { title: `event.${event.eventId}.title` });
+      if (this.ctx.settings.current.autoPauseEvents && game.speed !== 0) {
+        this.speedBeforeEvent = game.speed;
+        game.setSpeed(0);
+      }
+      this.eventDialog.show(game, event);
+    }));
+    this.ui.track(game.bus.on('eventResolved', () => {
+      if (this.speedBeforeEvent !== null && game.events.pending.length === 0) {
+        game.setSpeed(this.speedBeforeEvent);
+        this.speedBeforeEvent = null;
+      }
+      const next = game.events.pending[0];
+      if (next) this.eventDialog.show(game, next);
+    }));
+    const pending = game.events.pending[0];
+    if (pending) this.eventDialog.show(game, pending);
   }
 
   update(dt: number): void {
@@ -124,6 +165,8 @@ export class GameUI {
     if (game) {
       const pending = game.ships.list.filter((s) => s.status === 'pending').length;
       this.ui.setBadge('ships', pending);
+      this.ui.setBadge('missions', game.state.missions.offers.length);
+      this.eventDialog.refresh(game);
     }
   }
 
@@ -211,7 +254,7 @@ export class GameUI {
     const target = e.target as HTMLElement | null;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA')) return;
     const game = this.ctx.game();
-    if (!game || this.ui.overlayLayer.childElementCount > 0) return;
+    if (!game || this.ui.overlayLayer.childElementCount > 0 || this.eventDialog.open) return;
     if (this.world.build.active) {
       if (e.code === 'KeyR') this.rotate();
       else if (e.code === 'Enter') this.confirmBuild();

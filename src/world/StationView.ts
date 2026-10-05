@@ -29,6 +29,7 @@ interface ModuleVisual {
   rotor: TransformNode | null;
   scaffold: TransformNode | null;
   sparks: EffectHandle | null;
+  damageSparks: EffectHandle | null;
   shown: number;
 }
 
@@ -101,7 +102,7 @@ export class StationView {
       instances.push(...this.library.instantiate(template.rotor, rotor, `module-${m.id}-rotor`, true));
     }
     for (const inst of instances) this.shadows.addCaster(inst);
-    const visual: ModuleVisual = { id: m.id, type: m.type, root, body, instances, rotor, scaffold: null, sparks: null, shown: 1 };
+    const visual: ModuleVisual = { id: m.id, type: m.type, root, body, instances, rotor, scaffold: null, sparks: null, damageSparks: null, shown: 1 };
     this.visuals.set(m.id, visual);
     this.applyStatus(visual, m);
   }
@@ -112,6 +113,7 @@ export class StationView {
     for (const inst of v.instances) this.shadows.removeCaster(inst);
     this.labels.remove(`module-${id}`);
     v.sparks?.stop();
+    v.damageSparks?.stop();
     v.scaffold?.dispose();
     v.root.dispose();
     this.visuals.delete(id);
@@ -139,6 +141,11 @@ export class StationView {
       v.scaffold = null;
       v.sparks?.stop();
       v.sparks = null;
+    }
+    if (m.damaged && !v.damageSparks) v.damageSparks = this.effects.constructionSparks(v.root.position, 1.8);
+    else if (!m.damaged && v.damageSparks) {
+      v.damageSparks.stop();
+      v.damageSparks = null;
     }
   }
 

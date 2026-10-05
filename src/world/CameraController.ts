@@ -40,6 +40,8 @@ export class CameraController {
   private sensitivity = 1;
   private stationRadius = 30;
   private idleOrbit = 0;
+  private shakeAmount = 0;
+  private readonly shakeOffset = new Vector3();
   private readonly onKeyDown = (e: KeyboardEvent): void => {
     if (this.isTyping(e)) return;
     this.keys.add(e.code);
@@ -154,11 +156,30 @@ export class CameraController {
     this.flyTo(Vector3.Zero(), { ...DEFAULT_VIEW, duration: 5.5, done });
   }
 
+  /** Brief camera shake for impacts and explosions (0..1). */
+  shake(intensity: number): void {
+    this.shakeAmount = Math.max(this.shakeAmount, intensity);
+  }
+
   cancelTween(): void {
     this.tween = null;
   }
 
   update(dt: number): void {
+    const cam = this.camera;
+    // Undo last frame's shake offset before applying input and tweens.
+    cam.target.subtractInPlace(this.shakeOffset);
+    this.shakeOffset.setAll(0);
+    if (this.shakeAmount > 0.001) {
+      const s = this.shakeAmount * cam.radius * 0.012;
+      this.shakeOffset.set((Math.random() - 0.5) * s, (Math.random() - 0.5) * s, (Math.random() - 0.5) * s);
+      this.shakeAmount *= Math.exp(-dt * 5);
+    }
+    this.applyMotion(dt);
+    cam.target.addInPlace(this.shakeOffset);
+  }
+
+  private applyMotion(dt: number): void {
     const cam = this.camera;
     if (this.tween) {
       const tw = this.tween;

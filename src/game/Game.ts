@@ -10,7 +10,10 @@ import type { GameEvents, Notice, NoticeLevel } from './events';
 import type { GameSpeed, GameState, ModuleState } from './state';
 import { CrewSystem } from './systems/CrewSystem';
 import { EconomySystem } from './systems/EconomySystem';
+import { EventSystem } from './systems/EventSystem';
 import { MARKET_INTERVAL, MarketSystem } from './systems/MarketSystem';
+import { MissionSystem } from './systems/MissionSystem';
+import { ProgressionSystem } from './systems/ProgressionSystem';
 import { ResearchSystem } from './systems/ResearchSystem';
 import { ShipSystem } from './systems/ShipSystem';
 import { ResourceSystem } from './systems/ResourceSystem';
@@ -42,6 +45,9 @@ export class Game {
   readonly ships: ShipSystem;
   readonly crew: CrewSystem;
   readonly research: ResearchSystem;
+  readonly missions: MissionSystem;
+  readonly events: EventSystem;
+  readonly progression: ProgressionSystem;
   private accumulator = 0;
   private noticeId = 1;
   private modifierCache: { key: string; value: Modifiers } | null = null;
@@ -55,8 +61,11 @@ export class Game {
     this.ships = new ShipSystem(this);
     this.market = new MarketSystem(this);
     this.economy = new EconomySystem(this);
-    this.resources = new ResourceSystem(this);
+    this.missions = new MissionSystem(this);
+    this.events = new EventSystem(this);
+    this.progression = new ProgressionSystem(this);
     this.research = new ResearchSystem(this);
+    this.resources = new ResourceSystem(this);
   }
 
   get hour(): number {
@@ -115,6 +124,9 @@ export class Game {
   private onHour(hour: number): void {
     this.crew.hourly();
     this.ships.hourly();
+    this.missions.hourly();
+    this.events.hourly();
+    this.progression.check();
     if (hour % MARKET_INTERVAL === 0) this.market.update();
     if (hour % 24 === 0) {
       const day = hour / 24;
@@ -210,11 +222,15 @@ export class Game {
 
   /** Combined bonuses from completed research. */
   modifiers(): Modifiers {
-    const key = this.state.research.completed.join(',');
+    const key = `${this.state.research.completed.join(',')}|${this.state.events.effects.map((e) => e.id).join(',')}`;
     if (this.modifierCache?.key === key) return this.modifierCache.value;
     const mods = baseModifiers();
     for (const id of this.state.research.completed) {
       for (const [k, v] of Object.entries(TECHS[id].effects) as [keyof Modifiers, number][]) mods[k] += v;
+    }
+    for (const e of this.state.events.effects) {
+      if (e.kind === 'solarOutput') mods.solarOutput += e.value;
+      if (e.kind === 'production') mods.efficiency += e.value;
     }
     this.modifierCache = { key, value: mods };
     return mods;
@@ -241,16 +257,56 @@ export class Game {
   crewCapacity(): number {
     let beds = 0;
     for (const m of this.station.modules) if (m.status === 'active') beds += MODULES[m.type].crewCapacity ?? 0;
-    return Math.floor(beds * (1 + this.modifiers().crewCapacity));
+    return Math.floor((beds + this.progression.ringCapacity()) * (1 + this.modifiers().crewCapacity));
   }
 
   /** People aboard who breathe, drink and eat. */
   population(): number {
-    return this.state.crew.members.length + this.ships.visitors();
+    return this.state.crew.members.length + this.ships.visitors() + this.missions.guests();
   }
 
   hasFeature(feature: Feature): boolean {
     return this.state.research.completed.some((id) => TECHS[id].features?.includes(feature));
+  }
+
+  /** Oxygen lost per hour to hull leaks. */
+  oxygenLeak(): number {
+    let v = 0;
+    for (const e of this.state.events.effects) if (e.kind === 'oxygenLeak') v += e.value;
+    return v;
+  }
+
+  /** Strength of the station's defenses against pirates and debris. */
+  defenseRating(): number {
+    let rating = 0;
+    for (const m of this.station.modules) {
+      const def = MODULES[m.type].defense;
+      if (def && this.station.isOperational(m)) rating += def * (this.resources.flows.efficiency.get(m.id) ?? 1);
+    }
+    for (const s of this.ships.list) if (s.status === 'docked' && s.type === 'military') rating += 20;
+    return Math.round(rating);
+  }
+
+  repairCost(m: ModuleState): { credits: number; metal: number } {
+    const cost = MODULES[m.type].cost;
+    return { credits: Math.round((cost.credits ?? 200) * 0.3), metal: Math.round((cost.metal ?? 20) * 0.3) };
+  }
+
+  /** Repairs a damaged module. `free` skips the cost (paid elsewhere, e.g. by an event choice). */
+  repairModule(id: number, free = false): Result<'missing' | 'cost'> {
+    const m = this.station.getModule(id);
+    if (!m || !m.damaged) return { ok: false, reason: 'missing' };
+    if (!free) {
+      const cost = this.repairCost(m);
+      if (this.state.resources.credits < cost.credits || !this.resources.has('metal', cost.metal)) return { ok: false, reason: 'cost' };
+      this.economy.spend(cost.credits, 'upkeep');
+      this.resources.remove('metal', cost.metal);
+    }
+    m.damaged = false;
+    this.crew.markDirty();
+    this.bus.emit('moduleChanged', { module: m });
+    this.notify('success', 'notice.moduleRepaired', { module: `module.${m.type}.name` }, { moduleId: m.id });
+    return { ok: true };
   }
 
   /** Combined multiplier of active price events for a good. */

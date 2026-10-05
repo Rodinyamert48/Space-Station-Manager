@@ -489,3 +489,38 @@ input, select { font-family: inherit; }
 .tech-detail { margin-top: 10px; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.03); }
 .td-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .td-name { font-size: 18px; font-weight: 700; }
+
+/* Missions */
+.mission-card.special { box-shadow: 0 0 0 1px rgba(255, 122, 224, 0.35); }
+.success-text { color: var(--success); font-weight: 700; }
+
+/* Station overview */
+.stage-current { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; color: var(--accent); }
+.stage-track { display: flex; gap: 6px; margin: 10px 0 4px; }
+.stage-step { flex: 1; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; border: 1px solid var(--line); color: var(--dim); background: rgba(255, 255, 255, 0.03); }
+.stage-step.done { background: rgba(93, 252, 141, 0.18); border-color: rgba(93, 252, 141, 0.5); color: var(--success); }
+.stage-step.current { background: rgba(95, 216, 255, 0.25); border-color: var(--accent); color: var(--text); box-shadow: 0 0 12px var(--accent-glow); }
+.req-list { display: flex; flex-direction: column; gap: 8px; }
+.req-row .bar { margin-top: 4px; }
+.req-head { display: flex; justify-content: space-between; font-size: 14px; }
+.req-row.met .req-head { color: var(--success); }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.stat-cell { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.05); }
+.stat-cell b { font-size: 17px; }
+
+/* Event dialog */
+.event-dialog { width: min(480px, 100%); gap: 10px; border-color: var(--line-strong); }
+.event-dialog.sev-danger { border-color: rgba(255, 90, 79, 0.6); box-shadow: 0 0 40px rgba(255, 90, 79, 0.18), 0 16px 40px rgba(0, 0, 0, 0.6); }
+.event-dialog.sev-danger .dialog-icon { color: var(--danger); }
+.event-dialog.sev-warning .dialog-icon { color: var(--warn); }
+.event-dialog.sev-success .dialog-icon { color: var(--success); }
+.event-title { font-family: var(--font-display); font-size: 18px; letter-spacing: 0.1em; text-transform: uppercase; }
+.event-choices { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.event-choice { width: 100%; text-transform: none; letter-spacing: 0; font-size: 15px; justify-content: flex-start; text-align: left; min-height: 48px; }
+.choice-inner { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.choice-cost { font-size: 12px; color: var(--warn); font-weight: 600; }
+.more-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.more-btn { pointer-events: auto; cursor: pointer; padding: 16px 10px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.04); }
+.more-btn:active { transform: scale(0.97); }
+.more-inner { display: flex; flex-direction: column; align-items: center; gap: 6px; font-weight: 700; font-size: 14px; text-transform: uppercase; letter-spacing: 0.06em; }
+.more-inner .icon { width: 26px; height: 26px; color: var(--accent); }
