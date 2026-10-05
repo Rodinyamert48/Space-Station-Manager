@@ -429,3 +429,38 @@ input, select { font-family: inherit; }
 [data-layout='mobile'] .qty-btn { height: 36px; min-width: 38px; }
 [data-layout='mobile'] .qty-input { height: 36px; flex: 1; }
 [data-layout='mobile'] .trade-go { min-height: 40px; }
+
+/* Crew */
+.crew-summary { font-size: 16px; font-weight: 700; }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; }
+.seg-btn { pointer-events: auto; cursor: pointer; flex: 1 1 auto; padding: 7px 8px; border-radius: 7px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.03); font-weight: 700; font-size: 12px; letter-spacing: 0.04em; }
+.seg-btn:hover { border-color: var(--line-strong); }
+.seg-btn.active { background: rgba(95, 216, 255, 0.2); border-color: var(--accent); color: var(--accent); }
+.staff-list { display: flex; flex-direction: column; gap: 4px; }
+.staff-gap { pointer-events: auto; cursor: pointer; display: flex; align-items: center; gap: 8px; text-align: left; padding: 7px 9px; border-radius: 7px; border: 1px solid rgba(255, 181, 71, 0.35); background: rgba(255, 181, 71, 0.07); color: var(--text); font-weight: 600; font-size: 13px; }
+.staff-gap .icon { color: var(--warn); width: 16px; height: 16px; }
+.recruit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.recruit-card { display: flex; flex-direction: column; gap: 5px; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.03); }
+.recruit-card.none { opacity: 0.6; }
+.rc-head { display: flex; align-items: center; gap: 6px; }
+.rc-name { font-weight: 700; flex: 1; }
+.rc-app { font-size: 11px; font-weight: 700; color: var(--accent-2); }
+.recruit-card.none .rc-app { color: var(--dim); }
+.role-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--role-color); box-shadow: 0 0 6px var(--role-color); flex: none; }
+.roster { display: flex; flex-direction: column; gap: 6px; }
+.roster-row { padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.06); background: rgba(255, 255, 255, 0.025); display: flex; flex-direction: column; gap: 5px; }
+.rr-head { display: flex; align-items: center; gap: 7px; }
+.rr-name { font-weight: 700; }
+.rr-role { font-size: 12px; color: var(--role-color); font-weight: 700; flex: 1; }
+.need-tag { font-size: 11px; font-weight: 700; color: var(--warn); }
+.rr-bars { display: grid; grid-template-columns: 16px 1fr 16px 1fr 16px 1fr; align-items: center; gap: 4px 6px; }
+.bar-cap { display: flex; color: var(--muted); }
+.bar-cap .icon { width: 14px; height: 14px; }
+.mini-bar { height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.mini-fill { height: 100%; transition: width 0.4s; }
+.mini-bar.happy .mini-fill { background: var(--accent-2); }
+.mini-bar.energy .mini-fill { background: var(--gold); }
+.mini-bar.health .mini-fill { background: #ff7d9c; }
+.mini-bar.low .mini-fill { background: var(--danger); }
+.rr-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.staff-box { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }

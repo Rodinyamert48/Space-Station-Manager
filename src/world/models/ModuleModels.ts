@@ -356,7 +356,7 @@ function buildRestaurant(k: ModelKit): number {
   const trees: V3[] = [[1.4, 0.9, 0.6], [-1.2, 0.8, 1.2], [0.2, 1.0, -1.5], [-1.6, 0.8, -0.6], [1.5, 0.7, -1.2]];
   for (const [x, y, z] of trees) {
     k.cyl({ slot: 'hullDark', d: 0.12, h: 0.9, pos: [x, 0.7, z], tess: 5 });
-    k.sphere({ slot: 'accent', d: 1.0 + y * 0.3, seg: 8, pos: [x, 1.25 + y * 0.2, z] });
+    k.sphere({ slot: 'foliage', d: 1.0 + y * 0.3, seg: 8, pos: [x, 1.25 + y * 0.2, z] });
   }
   k.cyl({ slot: 'hullDark', d: 1.0, h: 0.6, pos: [0, 0.55, 0.1], tess: 16 });
   lightRing(k, 'accent', 'y', 0.2, 3.55, 16, 0.18);
@@ -430,6 +430,7 @@ export interface ModelLibraryParts {
 function buildConnector(k: ModelKit): void {
   // Built along +Z from 0 to 3 (one corridor between two port faces).
   k.cyl({ slot: 'glass', d: 2.1, h: 3.0, axis: 'z', pos: [0, 0, 1.5], tess: 20, cap: false });
+  for (const a of [0.9, -0.9]) k.beam({ slot: 'hull', from: [Math.sin(a) * 1.02, Math.cos(a) * 1.02, 0.1], to: [Math.sin(a) * 1.02, Math.cos(a) * 1.02, 2.9], w: 0.12 });
   for (const z of [0.15, 1.5, 2.85]) k.torus({ slot: 'hullDark', d: 2.25, t: 0.26, axis: 'z', pos: [0, 0, z], tess: 24 });
   k.box({ slot: 'hull', w: 1.2, h: 0.1, d: 3.0, pos: [0, -0.82, 1.5] });
   k.box({ slot: 'lightWhite', w: 0.08, h: 0.05, d: 2.8, pos: [0.45, -0.75, 1.5] });

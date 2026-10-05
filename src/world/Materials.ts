@@ -25,7 +25,8 @@ export type Slot =
   | 'lightWhite'
   | 'lightWarm'
   | 'navRed'
-  | 'navGreen';
+  | 'navGreen'
+  | 'foliage';
 
 /** Slots whose geometry is small detail and can be culled at a distance. */
 export const DETAIL_SLOTS: ReadonlySet<Slot> = new Set<Slot>(['gold', 'hazard', 'navRed', 'navGreen', 'lightWhite']);
@@ -61,10 +62,10 @@ export class MaterialLibrary {
     this.materials.set('paint', paint);
 
     const glass = new PBRMaterial('glass', scene);
-    glass.albedoColor = new Color3(0.02, 0.05, 0.08);
+    glass.albedoColor = new Color3(0.1, 0.2, 0.28);
     glass.metallic = 0.05;
     glass.roughness = 0.06;
-    glass.alpha = 0.32;
+    glass.alpha = 0.4;
     glass.transparencyMode = PBRMaterial.PBRMATERIAL_ALPHABLEND;
     glass.useRadianceOverAlpha = true;
     glass.useSpecularOverAlpha = true;
@@ -101,6 +102,13 @@ export class MaterialLibrary {
     windows.specularColor = Color3.Black();
     windows.emissiveTexture = createWindowTexture(scene);
     this.materials.set('windows', windows);
+
+    const foliage = new PBRMaterial('foliage', scene);
+    foliage.albedoColor = new Color3(0.18, 0.55, 0.22);
+    foliage.emissiveColor = new Color3(0.05, 0.22, 0.06);
+    foliage.metallic = 0;
+    foliage.roughness = 0.85;
+    this.materials.set('foliage', foliage);
 
     this.materials.set('lightWhite', this.light('lightWhite', new Color3(0.85, 0.93, 1)));
     this.materials.set('lightWarm', this.light('lightWarm', new Color3(1, 0.78, 0.5)));

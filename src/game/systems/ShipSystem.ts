@@ -248,6 +248,8 @@ export class ShipSystem {
     g.state.stats.shipsDocked++;
     g.state.stats.passengersServed += ship.passengers;
     g.notify('success', 'notice.shipDocked', { ship: ship.name, fee: ship.fee }, { shipId: ship.id });
+    // Some passengers are looking for work on the station.
+    if (ship.passengers > 0 && g.rng.chance(0.35)) g.crew.addApplicants(1);
     this.autoTrade(ship);
   }
 

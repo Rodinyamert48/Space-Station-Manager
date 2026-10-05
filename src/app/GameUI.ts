@@ -10,6 +10,7 @@ import { ResourceStrip } from '../ui/hud/ResourceStrip';
 import { icon } from '../ui/icons';
 import type { UIManager } from '../ui/UIManager';
 import { BuildWindow } from '../ui/windows/BuildWindow';
+import { CrewWindow } from '../ui/windows/CrewWindow';
 import { EconomyWindow } from '../ui/windows/EconomyWindow';
 import { MarketWindow } from '../ui/windows/MarketWindow';
 import { ModuleWindow } from '../ui/windows/ModuleWindow';
@@ -52,6 +53,10 @@ export class GameUI {
     ui.registerWindow(this.tradeWindow);
     ui.registerWindow(new MarketWindow(ctx));
     ui.registerWindow(new EconomyWindow(ctx));
+    ui.registerWindow(new CrewWindow(ctx, ui.overlayLayer, (id) => {
+      this.selectModule(id);
+      this.focusModule(id);
+    }));
 
     this.buildBar = new BuildBar(ctx, {
       rotate: () => this.rotate(),
@@ -71,12 +76,14 @@ export class GameUI {
       [
         { id: 'ships', icon: 'ship', label: () => t('ships.nav') },
         { id: 'market', icon: 'market', label: () => t('market.nav') },
+        { id: 'crew', icon: 'crew', label: () => t('crew.nav') },
         { id: 'economy', icon: 'credits', label: () => t('eco.nav') },
       ],
       [
         { id: 'build', icon: 'build', label: () => t('hud.build') },
         { id: 'ships', icon: 'ship', label: () => t('ships.nav') },
         { id: 'market', icon: 'market', label: () => t('market.nav') },
+        { id: 'crew', icon: 'crew', label: () => t('crew.nav') },
         { id: 'economy', icon: 'credits', label: () => t('eco.nav') },
         { id: 'resources', icon: 'energy', label: () => t('hud.resources') },
       ],

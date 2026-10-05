@@ -8,6 +8,7 @@ import { TECHS, baseModifiers, type Feature, type Modifiers } from '../data/rese
 import { clamp } from '../core/math';
 import type { GameEvents, Notice, NoticeLevel } from './events';
 import type { GameSpeed, GameState, ModuleState } from './state';
+import { CrewSystem } from './systems/CrewSystem';
 import { EconomySystem } from './systems/EconomySystem';
 import { MARKET_INTERVAL, MarketSystem } from './systems/MarketSystem';
 import { ShipSystem } from './systems/ShipSystem';
@@ -38,6 +39,7 @@ export class Game {
   readonly economy: EconomySystem;
   readonly market: MarketSystem;
   readonly ships: ShipSystem;
+  readonly crew: CrewSystem;
   private accumulator = 0;
   private noticeId = 1;
   private modifierCache: { key: string; value: Modifiers } | null = null;
@@ -47,6 +49,7 @@ export class Game {
     // Order matters: the resource system evaluates flows on construction, which reads the
     // station layout and visitors aboard docked ships.
     this.station = new StationSystem(this);
+    this.crew = new CrewSystem(this);
     this.ships = new ShipSystem(this);
     this.market = new MarketSystem(this);
     this.economy = new EconomySystem(this);
@@ -96,7 +99,8 @@ export class Game {
 
   step(dt: number): void {
     const before = this.state.time.hour;
-    this.state.time.hour = before + dt;
+    // Round to avoid floating-point drift from accumulating 0.1h steps.
+    this.state.time.hour = Math.round((before + dt) * 1e6) / 1e6;
     this.advanceConstruction(dt);
     this.resources.tick(dt);
     this.ships.update();
@@ -105,12 +109,14 @@ export class Game {
   }
 
   private onHour(hour: number): void {
+    this.crew.hourly();
     this.ships.hourly();
     if (hour % MARKET_INTERVAL === 0) this.market.update();
     if (hour % 24 === 0) {
       const day = hour / 24;
       const report = this.economy.endDay(day);
       this.market.onNewDay();
+      this.crew.onNewDay();
       this.bus.emit('day', { day, report });
       this.notify(report.net >= 0 ? 'info' : 'warning', 'notice.dayReport', { day, net: Math.round(report.net) });
     }
@@ -126,6 +132,7 @@ export class Game {
         m.buildProgress = MODULES[m.type].buildHours;
         this.state.stats.modulesBuilt++;
         this.resources.recomputeCapacity();
+        this.crew.markDirty();
         this.bus.emit('moduleCompleted', { module: m });
         this.bus.emit('moduleChanged', { module: m });
         this.notify('success', 'notice.moduleCompleted', { module: `module.${m.type}.name` }, { moduleId: m.id });
@@ -174,6 +181,7 @@ export class Game {
     const cost = MODULES[m.type].cost;
     this.station.removeModule(id);
     this.resources.recomputeCapacity();
+    this.crew.markDirty();
     for (const key of Object.keys(cost) as CostKey[]) {
       const amount = Math.floor((cost[key] ?? 0) * share);
       if (key === 'credits') this.economy.refund(amount, 'construction');
@@ -192,6 +200,7 @@ export class Game {
     const m = this.station.getModule(id);
     if (!m || MODULES[m.type].unique || m.enabled === enabled) return;
     m.enabled = enabled;
+    this.crew.markDirty();
     this.bus.emit('moduleChanged', { module: m });
   }
 
@@ -208,8 +217,20 @@ export class Game {
   }
 
   /** Output factor of a module from staffing and crew morale (1 = full output). */
-  moduleWorkFactor(_m: ModuleState): number {
-    return 1;
+  moduleWorkFactor(m: ModuleState): number {
+    return this.crew.workFactor(m);
+  }
+
+  /** True while a crew strike event is active. */
+  strikeActive(): boolean {
+    return this.state.events.effects.some((e) => e.kind === 'strike');
+  }
+
+  /** Additive happiness bonus/penalty from active events. */
+  happinessEffect(): number {
+    let v = 0;
+    for (const e of this.state.events.effects) if (e.kind === 'happiness') v += e.value;
+    return v;
   }
 
   /** Crew berths from built modules (plus research bonuses). */

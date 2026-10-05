@@ -82,6 +82,22 @@ export class ModuleWindow extends GameWindow {
     if (flows.produces.length) this.body.append(this.section(t('info.produces'), h('div', { class: 'chips' }, ...flows.produces)));
     if (flows.consumes.length) this.body.append(this.section(t('info.consumes'), h('div', { class: 'chips' }, ...flows.consumes)));
     if (features.length) this.body.append(this.section(t('info.features'), h('ul', { class: 'feature-list' }, ...features.map((f) => h('li', { text: f })))));
+    const required = game.crew.required(m.type);
+    if (def.staff) {
+      const staffing = game.crew.staffingOf(m.id);
+      const names = staffing.crew.map((id) => game.crew.get(id)).filter((c) => !!c).map((c) => `${c?.name} (${tk(`role.${c?.role ?? 'worker'}`)})`);
+      this.body.append(
+        this.section(
+          t('info.staff'),
+          h(
+            'div',
+            { class: 'staff-box' },
+            h('span', { class: `status-pill ${staffing.filled >= required ? '' : 'st-constructing'}`, text: required === 0 ? t('info.automated') : t('info.staffCount', { filled: staffing.crew.length, required }) }),
+            ...names.map((n) => h('span', { class: 'muted small', text: n })),
+          ),
+        ),
+      );
+    }
     this.body.append(
       this.section(
         t('info.upkeep'),

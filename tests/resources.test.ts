@@ -65,7 +65,8 @@ describe('resource simulation', () => {
     expect(flows.energyDemand).toBeGreaterThan(flows.energyProduction);
     expect(flows.powerRatio).toBeLessThan(1);
     const lab = game.station.modules.find((m) => m.type === 'lab');
-    expect(flows.efficiency.get(lab?.id ?? -1)).toBeCloseTo(flows.powerRatio, 5);
+    if (!lab) throw new Error('lab missing');
+    expect(flows.efficiency.get(lab.id)).toBeCloseTo(game.moduleWorkFactor(lab) * flows.powerRatio, 5);
   });
 
   it('reactors burn fuel and stop when it runs out', () => {

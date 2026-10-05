@@ -22,6 +22,8 @@ export interface PartOpts {
   scale?: V3;
   /** Vertex colour (paint slot only). */
   color?: string;
+  /** Explicit UV tiling [u, v], overriding the size-based default. */
+  uv?: readonly [number, number];
 }
 
 const AXIS_ROT: Record<Axis, V3> = { y: [0, 0, 0], z: [Math.PI / 2, 0, 0], x: [0, 0, -Math.PI / 2] };
@@ -50,6 +52,8 @@ export class ModelKit {
       .multiply(Matrix.Translation(p[0], p[1], p[2]));
     mesh.bakeTransformIntoVertices(m);
 
+    if (o.uv) [uScale, vScale] = o.uv;
+    else if (o.slot === 'windows') vScale = 1;
     const uvs = mesh.getVerticesData(VertexBuffer.UVKind);
     if (uvs && (uScale !== 1 || vScale !== 1)) {
       for (let i = 0; i < uvs.length; i += 2) {
@@ -77,7 +81,7 @@ export class ModelKit {
 
   box(o: PartOpts & { w: number; h: number; d: number }): void {
     const mesh = CreateBox(this.id(), { width: o.w, height: o.h, depth: o.d }, this.scene);
-    const u = Math.max(o.w, o.h, o.d) / 4;
+    const u = Math.max(o.w, o.h, o.d) / 2.6;
     this.add(mesh, o, 'y', u, u);
   }
 
@@ -93,18 +97,18 @@ export class ModelKit {
       },
       this.scene,
     );
-    this.add(mesh, o, o.axis ?? 'y', (Math.PI * o.d) / 5, o.h / 5);
+    this.add(mesh, o, o.axis ?? 'y', (Math.PI * o.d) / 3.2, o.h / 3.2);
   }
 
   sphere(o: PartOpts & { d: number; seg?: number; slice?: number }): void {
     const mesh = CreateSphere(this.id(), { diameter: o.d, segments: o.seg ?? 16, slice: o.slice ?? 1 }, this.scene);
-    const u = (Math.PI * o.d) / 5;
+    const u = (Math.PI * o.d) / 3.2;
     this.add(mesh, o, 'y', u, u / 2);
   }
 
   torus(o: PartOpts & { d: number; t: number; tess?: number; axis?: Axis }): void {
     const mesh = CreateTorus(this.id(), { diameter: o.d, thickness: o.t, tessellation: o.tess ?? 32 }, this.scene);
-    this.add(mesh, o, o.axis ?? 'y', (Math.PI * o.d) / 5, 1);
+    this.add(mesh, o, o.axis ?? 'y', (Math.PI * o.d) / 3.2, 1);
   }
 
   /** Surface of revolution around the (aligned) Y axis; profile points are [radius, height]. */
@@ -139,7 +143,7 @@ export class ModelKit {
     const pitch = -Math.asin(Math.max(-1, Math.min(1, dir.y / len)));
     const m = Matrix.RotationYawPitchRoll(yaw, pitch, 0).multiply(Matrix.Translation(mid.x, mid.y, mid.z));
     mesh.bakeTransformIntoVertices(m);
-    this.add(mesh, { slot: o.slot, color: o.color }, 'y', len / 4, 1);
+    this.add(mesh, { slot: o.slot, color: o.color }, 'y', len / 2.6, 1);
   }
 
   /** Merges parts per slot. Returned meshes are not yet assigned materials. */
