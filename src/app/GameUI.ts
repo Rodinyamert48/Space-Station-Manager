@@ -10,8 +10,12 @@ import { ResourceStrip } from '../ui/hud/ResourceStrip';
 import { icon } from '../ui/icons';
 import type { UIManager } from '../ui/UIManager';
 import { BuildWindow } from '../ui/windows/BuildWindow';
+import { EconomyWindow } from '../ui/windows/EconomyWindow';
+import { MarketWindow } from '../ui/windows/MarketWindow';
 import { ModuleWindow } from '../ui/windows/ModuleWindow';
 import { ResourcesWindow } from '../ui/windows/ResourcesWindow';
+import { ShipsWindow } from '../ui/windows/ShipsWindow';
+import { TradeWindow } from '../ui/windows/TradeWindow';
 import type { TapEvent, World } from '../world/World';
 
 /**
@@ -23,6 +27,8 @@ export class GameUI {
   private readonly buildBar: BuildBar;
   private readonly buildWindow: BuildWindow;
   private readonly moduleWindow: ModuleWindow;
+  private readonly shipsWindow: ShipsWindow;
+  private readonly tradeWindow: TradeWindow;
   private selectedModule: number | null = null;
   private refreshTimer = 0;
 
@@ -40,6 +46,12 @@ export class GameUI {
     ui.registerWindow(this.buildWindow);
     ui.registerWindow(this.moduleWindow);
     ui.registerWindow(new ResourcesWindow(ctx));
+    this.shipsWindow = new ShipsWindow(ctx, { trade: (id) => this.openTrade(id), focus: (id) => this.focusShip(id) });
+    this.tradeWindow = new TradeWindow(ctx);
+    ui.registerWindow(this.shipsWindow);
+    ui.registerWindow(this.tradeWindow);
+    ui.registerWindow(new MarketWindow(ctx));
+    ui.registerWindow(new EconomyWindow(ctx));
 
     this.buildBar = new BuildBar(ctx, {
       rotate: () => this.rotate(),
@@ -56,9 +68,16 @@ export class GameUI {
     const strip = new ResourceStrip(ctx, () => ui.toggleWindow('resources'));
     ui.setStrip(strip.el, () => strip.refresh());
     ui.setNav(
-      [],
+      [
+        { id: 'ships', icon: 'ship', label: () => t('ships.nav') },
+        { id: 'market', icon: 'market', label: () => t('market.nav') },
+        { id: 'economy', icon: 'credits', label: () => t('eco.nav') },
+      ],
       [
         { id: 'build', icon: 'build', label: () => t('hud.build') },
+        { id: 'ships', icon: 'ship', label: () => t('ships.nav') },
+        { id: 'market', icon: 'market', label: () => t('market.nav') },
+        { id: 'economy', icon: 'credits', label: () => t('eco.nav') },
         { id: 'resources', icon: 'energy', label: () => t('hud.resources') },
       ],
     );
@@ -66,6 +85,8 @@ export class GameUI {
       if (n.moduleId) {
         this.selectModule(n.moduleId);
         this.focusModule(n.moduleId);
+      } else if (n.shipId && this.ctx.game()?.ships.get(n.shipId)) {
+        this.showShip(n.shipId);
       }
     };
 
@@ -88,6 +109,29 @@ export class GameUI {
     this.refreshTimer = 0;
     this.buildPanel.refresh();
     this.buildBar.refresh();
+    const game = this.ctx.game();
+    if (game) {
+      const pending = game.ships.list.filter((s) => s.status === 'pending').length;
+      this.ui.setBadge('ships', pending);
+    }
+  }
+
+  private openTrade(id: number): void {
+    this.tradeWindow.setShip(id);
+    this.ui.openWindow('trade');
+  }
+
+  private focusShip(id: number): void {
+    const pos = this.world.ships.shipPosition(id);
+    if (pos) this.world.camera.flyTo(pos, { radius: 40 });
+  }
+
+  /** Opens traffic control with a ship highlighted and frames it. */
+  private showShip(id: number): void {
+    this.selectModule(null);
+    this.shipsWindow.highlightId = id;
+    this.ui.openWindow('ships');
+    this.focusShip(id);
   }
 
   private beginBuild(type: ModuleType): void {
@@ -121,6 +165,12 @@ export class GameUI {
       const pick = this.world.pick(e.x, e.y, (m) => this.world.build.isMarker(m));
       if (this.world.build.select(pick?.pickedMesh ?? null)) this.confirmBuild();
       else if (pick?.pickedMesh) this.ctx.playSound('click');
+      return;
+    }
+    const shipId = this.world.ships.shipIdFromNode(e.pick?.pickedMesh ?? null);
+    if (shipId !== null) {
+      this.ctx.playSound('click');
+      this.showShip(shipId);
       return;
     }
     const id = this.world.station.moduleIdFromMesh(e.pick?.pickedMesh ?? null);

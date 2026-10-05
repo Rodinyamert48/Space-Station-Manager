@@ -21,6 +21,7 @@ import { MaterialLibrary } from './Materials';
 import { ModelLibrary } from './ModelLibrary';
 import { SelectionMarker } from './SelectionMarker';
 import { ShadowManager } from './ShadowManager';
+import { ShipView } from './ShipView';
 import { StationView } from './StationView';
 
 export interface TapEvent {
@@ -45,6 +46,7 @@ export class World {
   readonly build: BuildController;
   readonly selection: SelectionMarker;
   readonly labels: WorldLabels;
+  readonly ships: ShipView;
   private profile: QualityProfile;
   private pipeline: DefaultRenderingPipeline | null = null;
   private glow: GlowLayer | null = null;
@@ -91,6 +93,7 @@ export class World {
     this.effects = new Effects(this.scene);
     this.labels = new WorldLabels(this.scene, this.engine);
     this.station = new StationView(this.scene, this.models, this.shadows, this.effects, this.labels, this.env.sunDirection);
+    this.ships = new ShipView(this.scene, this.models, this.materials, this.effects, this.labels, this.shadows);
     this.build = new BuildController(this.scene, this.models, () => this.game, (mesh) => this.excludeFromGlow(mesh));
     this.selection = new SelectionMarker(this.scene);
     for (const rock of this.env.nearRocks) rock.receiveShadows = true;
@@ -114,6 +117,7 @@ export class World {
     this.labels?.updateScale();
     this.fpsLimit = settings.fpsLimit;
     this.effects.setLevel(settings.particles);
+    this.ships?.setTrafficLimit(this.profile.maxTraffic);
     this.shadows.configure(settings.shadows, this.profile.shadowMapSize);
     this.env.setLensFlaresEnabled(this.profile.lensFlares);
 
@@ -168,6 +172,7 @@ export class World {
     this.detachGame();
     this.game = game;
     this.station.syncAll(game);
+    this.ships.syncAll(game);
     this.camera.setStationRadius(this.station.radius(game));
     const bus = game.bus;
     this.unsubscribe.push(
@@ -181,7 +186,17 @@ export class World {
         this.station.rebuildLinks(game);
       }),
       bus.on('moduleChanged', ({ module }) => this.station.updateModule(module)),
-      bus.on('layoutChanged', () => this.build.refresh()),
+      bus.on('layoutChanged', () => {
+        this.build.refresh();
+        this.ships.syncBerths(game);
+      }),
+      bus.on('moduleCompleted', () => this.ships.syncBerths(game)),
+      bus.on('shipAdded', ({ ship }) => this.ships.addShip(ship, game)),
+      bus.on('shipChanged', ({ ship }) => this.ships.shipChanged(ship, game)),
+      bus.on('shipRemoved', ({ ship }) => this.ships.removeShip(ship.id)),
+      bus.on('traded', ({ ship, qty }) => {
+        if (ship) this.ships.launchDrones(ship, qty);
+      }),
     );
   }
 
@@ -215,6 +230,7 @@ export class World {
       this.materials.update(this.elapsed);
       if (this.game) {
         this.station.update(dt, this.game);
+        this.ships.update(dt, this.game);
         const ratio = this.game.resources.flows.powerRatio;
         this.materials.setBrownout(ratio < 0.98 ? 0.3 + 0.7 * ratio : 1);
       }

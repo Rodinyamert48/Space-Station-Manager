@@ -130,6 +130,23 @@ export class UIManager {
     }
   }
 
+  /** Count badge on both the desktop and mobile navigation buttons. */
+  setBadge(id: string, count: number): void {
+    this.topBar.setBadge(id, count);
+    const b = this.mobileNav.querySelector<HTMLElement>(`.mnav-btn[data-nav="${id}"]`);
+    if (!b) return;
+    let badge = b.querySelector('.badge');
+    if (count <= 0) {
+      badge?.remove();
+      return;
+    }
+    if (!badge) {
+      badge = h('span', { class: 'badge' });
+      b.append(badge);
+    }
+    if (badge.textContent !== String(count)) badge.textContent = String(count);
+  }
+
   registerWindow(win: GameWindow): void {
     this.windows.set(win.id, win);
     win.onRequestClose = () => this.closeWindow();

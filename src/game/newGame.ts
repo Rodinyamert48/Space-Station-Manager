@@ -83,6 +83,7 @@ export function createNewGameState(seed = (Date.now() ^ 0x5f3759df) >>> 0): Game
       pressure: goodsRecord(() => 0),
       history: goodsRecord((g) => [RESOURCES[g].basePrice ?? 1]),
       drift: goodsRecord(() => 1),
+      exchangedToday: 0,
     },
     crew: { members, nextId: members.length + 1, salaryRate: 1, applicants: { engineer: 1, scientist: 2, worker: 1 } },
     ships: {

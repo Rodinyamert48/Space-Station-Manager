@@ -79,6 +79,8 @@ export interface MarketState {
   history: Record<Good, number[]>;
   /** Long-running galactic drift per good. */
   drift: Record<Good, number>;
+  /** Units moved through the galactic exchange today. */
+  exchangedToday: number;
 }
 
 export type CrewNeed = 'none' | 'rest' | 'food' | 'fun' | 'medical';
@@ -147,6 +149,8 @@ export interface ShipState {
   demandTotal: number;
   demandFilled: number;
   holdingSlot: number;
+  /** Hours the ship's people spent aboard during life-support shortages. */
+  complaints: number;
   /** Flagged by events, e.g. a rare trader. */
   special: boolean;
 }

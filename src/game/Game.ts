@@ -3,10 +3,14 @@ import { Rng } from '../core/Rng';
 import type { TKey, TParams } from '../i18n/i18n';
 import type { Rotation, Vec3i } from '../data/grid';
 import { DEMOLISH_REFUND, MODULES, type CostKey, type ModuleType } from '../data/modules';
-import { TECHS, baseModifiers, type Modifiers } from '../data/research';
+import type { Good } from '../data/resources';
+import { TECHS, baseModifiers, type Feature, type Modifiers } from '../data/research';
+import { clamp } from '../core/math';
 import type { GameEvents, Notice, NoticeLevel } from './events';
 import type { GameSpeed, GameState, ModuleState } from './state';
 import { EconomySystem } from './systems/EconomySystem';
+import { MARKET_INTERVAL, MarketSystem } from './systems/MarketSystem';
+import { ShipSystem } from './systems/ShipSystem';
 import { ResourceSystem } from './systems/ResourceSystem';
 import { StationSystem, type PlacementError } from './systems/StationSystem';
 
@@ -32,15 +36,21 @@ export class Game {
   readonly station: StationSystem;
   readonly resources: ResourceSystem;
   readonly economy: EconomySystem;
+  readonly market: MarketSystem;
+  readonly ships: ShipSystem;
   private accumulator = 0;
   private noticeId = 1;
   private modifierCache: { key: string; value: Modifiers } | null = null;
 
   constructor(public readonly state: GameState) {
     this.rng = new Rng(state.rngState);
+    // Order matters: the resource system evaluates flows on construction, which reads the
+    // station layout and visitors aboard docked ships.
     this.station = new StationSystem(this);
-    this.resources = new ResourceSystem(this);
+    this.ships = new ShipSystem(this);
+    this.market = new MarketSystem(this);
     this.economy = new EconomySystem(this);
+    this.resources = new ResourceSystem(this);
   }
 
   get hour(): number {
@@ -89,9 +99,22 @@ export class Game {
     this.state.time.hour = before + dt;
     this.advanceConstruction(dt);
     this.resources.tick(dt);
-    if (Math.floor(this.state.time.hour) !== Math.floor(before)) {
-      this.bus.emit('hour', { hour: Math.floor(this.state.time.hour) });
+    this.ships.update();
+    const hour = Math.floor(this.state.time.hour);
+    if (hour !== Math.floor(before)) this.onHour(hour);
+  }
+
+  private onHour(hour: number): void {
+    this.ships.hourly();
+    if (hour % MARKET_INTERVAL === 0) this.market.update();
+    if (hour % 24 === 0) {
+      const day = hour / 24;
+      const report = this.economy.endDay(day);
+      this.market.onNewDay();
+      this.bus.emit('day', { day, report });
+      this.notify(report.net >= 0 ? 'info' : 'warning', 'notice.dayReport', { day, net: Math.round(report.net) });
     }
+    this.bus.emit('hour', { hour });
   }
 
   private advanceConstruction(dt: number): void {
@@ -137,9 +160,9 @@ export class Game {
     return { ok: true };
   }
 
-  /** Hook for systems that lock a module (e.g. a ship using a docking berth). */
-  isModuleOccupied(_m: ModuleState): boolean {
-    return false;
+  /** A docking module cannot be removed while a ship uses its berth. */
+  isModuleOccupied(m: ModuleState): boolean {
+    return m.type === 'docking' && !!this.ships.shipAtBerth(m.id);
   }
 
   /** Removes a module. Unfinished construction is refunded fully, finished modules partially. */
@@ -198,7 +221,33 @@ export class Game {
 
   /** People aboard who breathe, drink and eat. */
   population(): number {
-    return this.state.crew.members.length;
+    return this.state.crew.members.length + this.ships.visitors();
+  }
+
+  hasFeature(feature: Feature): boolean {
+    return this.state.research.completed.some((id) => TECHS[id].features?.includes(feature));
+  }
+
+  /** Combined multiplier of active price events for a good. */
+  priceEffect(good: Good): number {
+    let mult = 1;
+    for (const e of this.state.events.effects) if (e.kind === 'price' && e.good === good) mult *= e.value;
+    return mult;
+  }
+
+  /** Additive traffic bonus from active events. */
+  trafficEffect(): number {
+    let bonus = 0;
+    for (const e of this.state.events.effects) if (e.kind === 'traffic') bonus += e.value;
+    return bonus;
+  }
+
+  changeReputation(delta: number): void {
+    const before = this.state.reputation;
+    const value = clamp(before + delta, 0, 100);
+    if (value === before) return;
+    this.state.reputation = value;
+    this.bus.emit('reputationChanged', { value, delta: value - before });
   }
 
   isModuleUnlocked(type: ModuleType): boolean {
