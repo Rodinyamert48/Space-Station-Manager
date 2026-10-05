@@ -464,3 +464,28 @@ input, select { font-family: inherit; }
 .mini-bar.low .mini-fill { background: var(--danger); }
 .rr-actions { display: flex; gap: 6px; justify-content: flex-end; }
 .staff-box { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+
+/* Research tree */
+.rs-head { font-weight: 700; font-size: 15px; }
+.rs-progress { margin-top: 8px; }
+.tree-scroll { overflow: auto; margin-top: 8px; padding: 6px 4px 10px; border-radius: 10px; background: radial-gradient(circle at 30% 20%, rgba(95, 216, 255, 0.06), transparent 60%), rgba(0, 0, 0, 0.2); border: 1px solid rgba(255, 255, 255, 0.05); }
+.tree-canvas { position: relative; margin: 6px; }
+.tree-links { position: absolute; inset: 0; pointer-events: none; }
+.tree-links .link { fill: none; stroke: rgba(110, 200, 255, 0.25); stroke-width: 2; }
+.tree-links .link.done { stroke: rgba(93, 252, 141, 0.7); }
+.tech-node { position: absolute; pointer-events: auto; cursor: pointer; display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: linear-gradient(180deg, rgba(20, 34, 52, 0.95), rgba(10, 18, 30, 0.95)); text-align: left; transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s; overflow: hidden; }
+.tech-node:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+.tech-node.selected { box-shadow: 0 0 0 2px var(--accent), 0 0 18px var(--accent-glow); }
+.tn-name { font-weight: 700; font-size: 14px; line-height: 1.15; }
+.tn-cost { font-size: 11px; color: var(--muted); font-weight: 600; }
+.tech-node.st-completed { border-color: rgba(93, 252, 141, 0.55); background: linear-gradient(180deg, rgba(20, 56, 40, 0.95), rgba(10, 28, 22, 0.95)); }
+.tech-node.st-completed .tn-cost { color: var(--success); }
+.tech-node.st-available { border-color: rgba(95, 216, 255, 0.45); }
+.tech-node.st-available.affordable .tn-cost { color: var(--accent); }
+.tech-node.st-locked { opacity: 0.5; }
+.tech-node.st-active { border-color: var(--warn); box-shadow: 0 0 16px rgba(255, 181, 71, 0.3); }
+.tn-bar { height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.tn-fill { height: 100%; width: 0; background: var(--warn); }
+.tech-detail { margin-top: 10px; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.03); }
+.td-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.td-name { font-size: 18px; font-weight: 700; }

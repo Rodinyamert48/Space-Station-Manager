@@ -14,6 +14,7 @@ import { CrewWindow } from '../ui/windows/CrewWindow';
 import { EconomyWindow } from '../ui/windows/EconomyWindow';
 import { MarketWindow } from '../ui/windows/MarketWindow';
 import { ModuleWindow } from '../ui/windows/ModuleWindow';
+import { ResearchWindow } from '../ui/windows/ResearchWindow';
 import { ResourcesWindow } from '../ui/windows/ResourcesWindow';
 import { ShipsWindow } from '../ui/windows/ShipsWindow';
 import { TradeWindow } from '../ui/windows/TradeWindow';
@@ -53,6 +54,7 @@ export class GameUI {
     ui.registerWindow(this.tradeWindow);
     ui.registerWindow(new MarketWindow(ctx));
     ui.registerWindow(new EconomyWindow(ctx));
+    ui.registerWindow(new ResearchWindow(ctx));
     ui.registerWindow(new CrewWindow(ctx, ui.overlayLayer, (id) => {
       this.selectModule(id);
       this.focusModule(id);
@@ -77,6 +79,7 @@ export class GameUI {
         { id: 'ships', icon: 'ship', label: () => t('ships.nav') },
         { id: 'market', icon: 'market', label: () => t('market.nav') },
         { id: 'crew', icon: 'crew', label: () => t('crew.nav') },
+        { id: 'research', icon: 'research', label: () => t('research.nav') },
         { id: 'economy', icon: 'credits', label: () => t('eco.nav') },
       ],
       [
@@ -84,6 +87,7 @@ export class GameUI {
         { id: 'ships', icon: 'ship', label: () => t('ships.nav') },
         { id: 'market', icon: 'market', label: () => t('market.nav') },
         { id: 'crew', icon: 'crew', label: () => t('crew.nav') },
+        { id: 'research', icon: 'research', label: () => t('research.nav') },
         { id: 'economy', icon: 'credits', label: () => t('eco.nav') },
         { id: 'resources', icon: 'energy', label: () => t('hud.resources') },
       ],

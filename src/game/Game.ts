@@ -11,6 +11,7 @@ import type { GameSpeed, GameState, ModuleState } from './state';
 import { CrewSystem } from './systems/CrewSystem';
 import { EconomySystem } from './systems/EconomySystem';
 import { MARKET_INTERVAL, MarketSystem } from './systems/MarketSystem';
+import { ResearchSystem } from './systems/ResearchSystem';
 import { ShipSystem } from './systems/ShipSystem';
 import { ResourceSystem } from './systems/ResourceSystem';
 import { StationSystem, type PlacementError } from './systems/StationSystem';
@@ -40,6 +41,7 @@ export class Game {
   readonly market: MarketSystem;
   readonly ships: ShipSystem;
   readonly crew: CrewSystem;
+  readonly research: ResearchSystem;
   private accumulator = 0;
   private noticeId = 1;
   private modifierCache: { key: string; value: Modifiers } | null = null;
@@ -54,6 +56,7 @@ export class Game {
     this.market = new MarketSystem(this);
     this.economy = new EconomySystem(this);
     this.resources = new ResourceSystem(this);
+    this.research = new ResearchSystem(this);
   }
 
   get hour(): number {
@@ -103,6 +106,7 @@ export class Game {
     this.state.time.hour = Math.round((before + dt) * 1e6) / 1e6;
     this.advanceConstruction(dt);
     this.resources.tick(dt);
+    this.research.tick(dt);
     this.ships.update();
     const hour = Math.floor(this.state.time.hour);
     if (hour !== Math.floor(before)) this.onHour(hour);
