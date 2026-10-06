@@ -161,7 +161,11 @@ export class World {
       this.pipeline.fxaaEnabled = this.profile.msaa <= 1;
       this.pipeline.bloomEnabled = settings.bloom;
       this.pipeline.chromaticAberrationEnabled = settings.quality === 'ultra';
-      if (this.pipeline.chromaticAberrationEnabled) this.pipeline.chromaticAberration.aberrationAmount = 10;
+      if (this.pipeline.chromaticAberrationEnabled) {
+        // Lens-like: invisible at the centre of the screen, a faint fringe towards the edges.
+        this.pipeline.chromaticAberration.aberrationAmount = 12;
+        this.pipeline.chromaticAberration.radialIntensity = 1.6;
+      }
     }
     this.env.setLinearOutput(this.pipeline !== null);
     // Refreeze static materials once the new shader variants have compiled.
@@ -320,10 +324,10 @@ export class World {
       if (!down || down.id !== e.pointerId || e.button > 0) return;
       const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
       if (moved > 8 || performance.now() - down.t > 600) return;
+      // Babylon picks in CSS pixels and applies the hardware scaling level itself.
       const rect = c.getBoundingClientRect();
-      const scale = this.engine.getRenderWidth() / rect.width;
-      const x = (e.clientX - rect.left) * scale;
-      const y = (e.clientY - rect.top) * scale;
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
       const pick = this.pick(x, y);
       for (const fn of this.tapListeners) fn({ x, y, pick });
     });
@@ -335,8 +339,7 @@ export class World {
       if (now - lastHover < 50) return;
       lastHover = now;
       const rect = c.getBoundingClientRect();
-      const scale = this.engine.getRenderWidth() / rect.width;
-      const pick = this.pick((e.clientX - rect.left) * scale, (e.clientY - rect.top) * scale, (m) => this.build.isMarker(m));
+      const pick = this.pick(e.clientX - rect.left, e.clientY - rect.top, (m) => this.build.isMarker(m));
       this.build.hover(pick?.pickedMesh ?? null);
     });
   }

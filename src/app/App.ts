@@ -76,7 +76,8 @@ export class App {
     });
     window.addEventListener('pagehide', () => void this.autosave());
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && this.playing && !this.ui.activeWindowId && !this.world.build.active && this.ui.overlayLayer.childElementCount === 0) {
+      // Escape presses already used to close a window or leave build mode are marked handled.
+      if (e.key === 'Escape' && !e.defaultPrevented && this.playing && !this.ui.activeWindowId && !this.world.build.active && this.ui.overlayLayer.childElementCount === 0) {
         if (this.menus.visible) this.resume();
         else this.openPauseMenu();
       }
@@ -174,6 +175,7 @@ export class App {
       cam.playIntro(() => {
         game.setSpeed(1);
         game.notify('success', 'notice.welcome');
+        game.tutorial.announce();
         this.audio.play('notify');
       });
     } else {
@@ -198,6 +200,7 @@ export class App {
       game.bus.on('researchCompleted', play('research')),
       game.bus.on('stageChanged', play('research')),
       game.bus.on('missionCompleted', play('complete')),
+      game.bus.on('tutorialChanged', play('notify')),
       game.bus.on('notice', (n) => {
         if (n.level === 'danger') this.audio.play('warning');
       }),

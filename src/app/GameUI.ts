@@ -4,10 +4,11 @@ import type { Game } from '../game/Game';
 import type { GameSpeed } from '../game/state';
 import { onLanguageChange, t } from '../i18n/i18n';
 import type { UIContext } from '../ui/context';
-import { h } from '../ui/dom';
+import { h, toggleClass } from '../ui/dom';
 import { EventDialog } from '../ui/EventDialog';
 import { BuildBar } from '../ui/hud/BuildBar';
 import { BuildPanel } from '../ui/hud/BuildPanel';
+import { ObjectiveCard } from '../ui/hud/ObjectiveCard';
 import { ResourceStrip } from '../ui/hud/ResourceStrip';
 import { icon } from '../ui/icons';
 import type { UIManager } from '../ui/UIManager';
@@ -37,6 +38,7 @@ export class GameUI {
   private readonly shipsWindow: ShipsWindow;
   private readonly tradeWindow: TradeWindow;
   private readonly eventDialog: EventDialog;
+  private readonly objective: ObjectiveCard;
   private selectedModule: number | null = null;
   private refreshTimer = 0;
   private speedBeforeEvent: GameSpeed | null = null;
@@ -89,8 +91,15 @@ export class GameUI {
       cancel: () => this.cancelBuild(),
     });
     ui.mountBuildBar(this.buildBar.el);
+    this.objective = new ObjectiveCard(ctx, ui.root, ui.overlayLayer, {
+      build: (type) => this.beginBuild(type),
+      open: (id) => this.ui.openWindow(id),
+    });
+    ui.mountObjective(this.objective.el);
+    onLanguageChange(() => this.objective.relabel());
     world.build.onChange = (preview) => {
       this.buildBar.update(preview);
+      toggleClass(this.objective.el, 'suppressed', preview !== null);
       this.buildPanel.setSelected(preview?.type ?? null);
       this.buildWindow.panel.setSelected(preview?.type ?? null);
     };
@@ -112,8 +121,8 @@ export class GameUI {
         { id: 'ships', icon: 'ship', label: () => t('ships.nav') },
         { id: 'market', icon: 'market', label: () => t('market.nav') },
         { id: 'crew', icon: 'crew', label: () => t('crew.nav') },
-        { id: 'research', icon: 'research', label: () => t('research.nav') },
-        { id: 'missions', icon: 'missions', label: () => t('missions.nav') },
+        { id: 'research', icon: 'research', label: () => t('mnav.research') },
+        { id: 'missions', icon: 'missions', label: () => t('mnav.missions') },
         { id: 'more', icon: 'menu', label: () => t('hud.more') },
       ],
     );
@@ -136,6 +145,8 @@ export class GameUI {
     this.eventDialog.close();
     this.speedBeforeEvent = null;
     this.buildPanel.rebuild();
+    this.objective.refresh();
+    this.ui.track(game.bus.on('tutorialChanged', () => this.objective.refresh()));
     this.ui.track(game.bus.on('moduleRemoved', ({ module }) => {
       if (module.id === this.selectedModule) this.selectModule(null);
     }));
@@ -166,6 +177,7 @@ export class GameUI {
     this.refreshTimer = 0;
     this.buildPanel.refresh();
     this.buildBar.refresh();
+    this.objective.refresh();
     const game = this.ctx.game();
     if (game) {
       const pending = game.ships.list.filter((s) => s.status === 'pending').length;
@@ -264,7 +276,10 @@ export class GameUI {
     if (this.world.build.active) {
       if (e.code === 'KeyR') this.rotate();
       else if (e.code === 'Enter') this.confirmBuild();
-      else if (e.code === 'Escape' && !this.ui.activeWindowId) this.cancelBuild();
+      else if (e.code === 'Escape' && !e.defaultPrevented && !this.ui.activeWindowId) {
+        this.cancelBuild();
+        e.preventDefault();
+      }
       return;
     }
     switch (e.code) {

@@ -34,11 +34,11 @@ export const MISSION_TEMPLATES: MissionTemplate[] = [
     qty: [35, 70], hours: [36, 72], rewardMult: [1.5, 1.9], reputation: 3, research: 0, weight: 30, minStage: 1, minReputation: 0,
   },
   {
-    id: 'miningOrder', kind: 'deliver', goods: ['metal', 'titanium'], clients: ['Kuiper Mining Co.', 'Vesta Heavy Industries', 'Ceres Consolidated'],
+    id: 'miningOrder', kind: 'deliver', goods: ['metal', 'titanium'], clients: ['Kuiper Mining Company', 'Vesta Heavy Industries', 'Ceres Consolidated'],
     qty: [30, 60], hours: [48, 84], rewardMult: [1.6, 2.0], reputation: 2, research: 0, weight: 20, minStage: 1, minReputation: 0,
   },
   {
-    id: 'researchRequest', kind: 'deliver', goods: ['electronics'], clients: ['Ganymede Research Inst.', 'Ganymede Labs'],
+    id: 'researchRequest', kind: 'deliver', goods: ['electronics'], clients: ['Ganymede Research Institute', 'Ganymede Labs'],
     qty: [15, 30], hours: [48, 96], rewardMult: [1.4, 1.7], reputation: 3, research: 15, weight: 16, minStage: 1, minReputation: 5,
   },
   {

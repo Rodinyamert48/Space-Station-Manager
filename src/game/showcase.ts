@@ -38,6 +38,7 @@ export function createShowcaseGame(): Game {
   state.events.nextEventAt = 1e9;
   state.missions.nextOfferAt = 1e9;
   state.reputation = 55;
+  state.tutorial.done = true;
   state.ships.autoAccept = true;
   const game = new Game(state);
   for (const [type, cell, rotation] of LAYOUT) {

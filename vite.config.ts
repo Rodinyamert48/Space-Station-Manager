@@ -1,5 +1,5 @@
 import { defineConfig } from 'vitest/config';
-import pkg from './package.json';
+import pkg from './package.json' with { type: 'json' };
 
 // Relative base so the production build works from any sub-path (e.g. GitHub Pages project sites).
 export default defineConfig({

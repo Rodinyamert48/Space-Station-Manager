@@ -238,6 +238,9 @@ export class ShipSystem {
 
   private dock(ship: ShipState): void {
     const g = this.game;
+    // Count first so listeners of the status change see up-to-date statistics.
+    g.state.stats.shipsDocked++;
+    g.state.stats.passengersServed += ship.passengers;
     this.setStatus(ship, 'docked');
     const serviceMult = Math.max(0.3, 1 + g.modifiers().serviceTime);
     ship.serviceUntil = g.hour + SHIPS[ship.type].serviceHours * serviceMult;
@@ -245,8 +248,6 @@ export class ShipSystem {
     g.economy.earn(ship.fee, 'docking');
     if (ship.passengers > 0) g.economy.earn(ship.passengers * ship.passengerFee, 'passengers');
     g.economy.charge(ship.size === 'L' ? 22 : ship.size === 'M' ? 12 : 8, 'shipServices');
-    g.state.stats.shipsDocked++;
-    g.state.stats.passengersServed += ship.passengers;
     g.notify('success', 'notice.shipDocked', { ship: ship.name, fee: ship.fee }, { shipId: ship.id });
     // Some passengers are looking for work on the station.
     if (ship.passengers > 0 && g.rng.chance(0.35)) g.crew.addApplicants(1);

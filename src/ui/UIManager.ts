@@ -29,6 +29,7 @@ export class UIManager {
   private readonly bottom: HTMLElement;
   private readonly strip: HTMLElement;
   private readonly buildBarSlot: HTMLElement;
+  private readonly objectiveSlot: HTMLElement;
   private readonly mobileNav: HTMLElement;
   private readonly sheetLayer: HTMLElement;
   readonly overlayLayer: HTMLElement;
@@ -55,8 +56,9 @@ export class UIManager {
     this.bottom = h('div', { class: 'hud-bottom' }, this.feed.el);
     this.strip = h('div', { class: 'hud-strip' });
     this.buildBarSlot = h('div', { class: 'hud-buildbar' });
+    this.objectiveSlot = h('div', { class: 'hud-objective' });
     this.mobileNav = h('nav', { class: 'mobile-nav' });
-    this.hud = h('div', { class: 'hud hidden' }, h('div', { class: 'hud-top' }, this.topBar.el), this.strip, this.left, this.right, this.bottom, this.buildBarSlot, this.mobileNav);
+    this.hud = h('div', { class: 'hud hidden' }, h('div', { class: 'hud-top' }, this.topBar.el), this.strip, this.left, this.right, this.objectiveSlot, this.bottom, this.buildBarSlot, this.mobileNav);
     this.sheetLayer = h('div', { class: 'sheet-layer' });
     this.sheetLayer.addEventListener('click', (e) => {
       if (e.target === this.sheetLayer) this.closeWindow();
@@ -70,7 +72,7 @@ export class UIManager {
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.active) {
         this.closeWindow();
-        e.stopPropagation();
+        e.preventDefault();
       }
     });
     onLanguageChange(() => this.relabel());
@@ -110,6 +112,10 @@ export class UIManager {
 
   mountBuildBar(el: HTMLElement): void {
     this.buildBarSlot.replaceChildren(el);
+  }
+
+  mountObjective(el: HTMLElement): void {
+    this.objectiveSlot.replaceChildren(el);
   }
 
   /** Compact resource chips shown under the mobile top bar. */

@@ -97,8 +97,8 @@ export const SHIP_NAME_WORDS = [
   'Tethys', 'Calypso', 'Anatolia', 'Solstice', 'Equinox', 'Harbinger', 'Starling', 'Wayfarer', 'Drifter',
 ];
 export const SHIP_OWNERS = [
-  'Helios Freight', 'Kuiper Mining Co.', 'Orion Lines', 'Ceres Consolidated', 'Tycho Logistics', 'Europa Agri',
-  'Vesta Heavy Industries', 'Callisto Transit', 'Free Trader Guild', 'Titan Fuel Cartel', 'Ganymede Research Inst.',
+  'Helios Freight', 'Kuiper Mining Company', 'Orion Lines', 'Ceres Consolidated', 'Tycho Logistics', 'Europa Agri',
+  'Vesta Heavy Industries', 'Callisto Transit', 'Free Trader Guild', 'Titan Fuel Cartel', 'Ganymede Research Institute',
   'Lagrange Holdings',
 ];
 export const LOCATIONS = [

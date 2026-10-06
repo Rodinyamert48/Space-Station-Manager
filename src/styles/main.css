@@ -577,3 +577,32 @@ input, select { font-family: inherit; }
   .main-menu .menu-title { font-size: clamp(32px, 4.4vw, 64px); max-width: 9em; }
   .main-menu .menu-warning { text-align: left; }
 }
+
+/* Tutorial objective */
+.hud-objective { position: absolute; top: calc(var(--topbar-h) + 22px + var(--safe-top)); left: calc(var(--left-w) + 30px + var(--safe-left)); width: min(330px, calc(100% - var(--left-w) - var(--right-w) - 60px)); pointer-events: none; }
+.objective { pointer-events: auto; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px 12px; border-color: var(--line-strong); box-shadow: 0 0 24px rgba(95, 216, 255, 0.12); animation: rise 0.3s ease-out; }
+.objective.advance { animation: obj-advance 0.7s ease-out; }
+.obj-head { display: flex; align-items: center; gap: 8px; }
+.obj-icon { display: inline-flex; color: var(--gold); }
+.obj-icon .icon { width: 16px; height: 16px; }
+.obj-label { flex: 1; font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); }
+.obj-skip { margin: -4px -4px -4px 0; }
+.obj-title { font-weight: 700; font-size: 16px; line-height: 1.25; }
+.obj-hint { font-size: 13px; color: var(--muted); line-height: 1.35; }
+.obj-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 2px; }
+.obj-dots { display: flex; gap: 4px; }
+.obj-dot { width: 14px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.14); transition: background 0.3s; }
+.obj-dot.done { background: var(--success); }
+.obj-dot.current { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+.tut-target { outline: 2px solid var(--gold); outline-offset: -2px; animation: tut-pulse 1.4s ease-in-out infinite; }
+@keyframes tut-pulse { 50% { outline-color: rgba(255, 209, 102, 0.25); } }
+@keyframes obj-advance { 0% { transform: scale(0.96); border-color: var(--success); box-shadow: 0 0 34px rgba(93, 252, 141, 0.45); } 100% { transform: none; } }
+[data-layout='mobile'] .hud-objective { top: auto; left: calc(8px + var(--safe-left)); right: calc(8px + var(--safe-right)); width: auto; bottom: calc(76px + var(--safe-bottom)); }
+[data-layout='mobile'] .objective { padding: 8px 10px 10px; gap: 4px; }
+[data-layout='mobile'] .objective.suppressed { display: none; }
+[data-layout='mobile'] .obj-title { font-size: 15px; }
+[data-layout='mobile'] .obj-hint { font-size: 12px; }
+@media (max-height: 500px) {
+  [data-layout='mobile'] .hud-objective { left: auto; width: min(340px, 48%); }
+  [data-layout='mobile'] .obj-hint { display: none; }
+}

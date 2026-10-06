@@ -18,6 +18,7 @@ import { ResearchSystem } from './systems/ResearchSystem';
 import { ShipSystem } from './systems/ShipSystem';
 import { ResourceSystem } from './systems/ResourceSystem';
 import { StationSystem, type PlacementError } from './systems/StationSystem';
+import { TutorialSystem } from './systems/TutorialSystem';
 
 /** Real seconds per game hour at 1x speed. One game day lasts one real minute. */
 export const SECONDS_PER_HOUR = 2.5;
@@ -48,6 +49,7 @@ export class Game {
   readonly missions: MissionSystem;
   readonly events: EventSystem;
   readonly progression: ProgressionSystem;
+  readonly tutorial: TutorialSystem;
   private accumulator = 0;
   private noticeId = 1;
   private modifierCache: { key: string; value: Modifiers } | null = null;
@@ -66,6 +68,7 @@ export class Game {
     this.progression = new ProgressionSystem(this);
     this.research = new ResearchSystem(this);
     this.resources = new ResourceSystem(this);
+    this.tutorial = new TutorialSystem(this);
   }
 
   get hour(): number {
@@ -127,6 +130,7 @@ export class Game {
     this.missions.hourly();
     this.events.hourly();
     this.progression.check();
+    this.tutorial.check();
     if (hour % MARKET_INTERVAL === 0) this.market.update();
     if (hour % 24 === 0) {
       const day = hour / 24;

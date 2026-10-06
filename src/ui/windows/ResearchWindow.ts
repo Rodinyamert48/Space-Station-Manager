@@ -91,6 +91,7 @@ export class ResearchWindow extends GameWindow {
         {
           class: `tech-node st-${st}${affordable ? ' affordable' : ''}${id === this.selected ? ' selected' : ''}`,
           attrs: { type: 'button' },
+          dataset: { tech: id },
           style: { left: `${p.x}px`, top: `${p.y}px`, width: `${NODE_W}px`, height: `${NODE_H}px` },
         },
         h('span', { class: 'tn-name', text: tk(`tech.${id}.name`) }),
