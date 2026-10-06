@@ -28,6 +28,25 @@ export type Slot =
   | 'navGreen'
   | 'foliage';
 
+/** Emissive slots that feed the glow layer. */
+export const GLOW_SLOTS: ReadonlySet<Slot> = new Set<Slot>(['accent', 'lightWhite', 'lightWarm', 'navRed', 'navGreen', 'windows']);
+/** Structural slots that cast shadows (small lights and glass do not). */
+export const SHADOW_SLOTS: ReadonlySet<Slot> = new Set<Slot>(['hull', 'hullDark', 'paint', 'solar', 'gold', 'hazard']);
+
+/** Metadata tags understood by the world (glow inclusion, shadow casting). */
+export interface MeshTags {
+  slot?: Slot;
+  glow?: boolean;
+  castShadow?: boolean;
+}
+
+/** Hull geometry is rendered into the glow map as black so glows do not shine through walls. */
+const GLOW_OCCLUDERS: ReadonlySet<Slot> = new Set<Slot>(['hull', 'hullDark', 'paint']);
+
+export function slotTags(slot: Slot): MeshTags {
+  return { slot, glow: GLOW_SLOTS.has(slot) || GLOW_OCCLUDERS.has(slot), castShadow: SHADOW_SLOTS.has(slot) };
+}
+
 /** Slots whose geometry is small detail and can be culled at a distance. */
 export const DETAIL_SLOTS: ReadonlySet<Slot> = new Set<Slot>(['gold', 'hazard', 'navRed', 'navGreen', 'lightWhite']);
 
@@ -172,6 +191,15 @@ export class MaterialLibrary {
       this.accentMaterials.set(key, m);
     }
     return m;
+  }
+
+  /** Freezes static PBR materials (skips per-frame define checks); unfreeze before feature changes. */
+  setFrozen(frozen: boolean): void {
+    for (const m of this.materials.values()) {
+      if (!(m instanceof PBRMaterial)) continue;
+      if (frozen) m.freeze();
+      else m.unfreeze();
+    }
   }
 
   /** Dims all station lights when power runs short (1 = normal, 0.2 = blackout). */

@@ -5,9 +5,9 @@ import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder';
 import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder';
 import { CreateLathe } from '@babylonjs/core/Meshes/Builders/latheBuilder';
 import { CreateSphere } from '@babylonjs/core/Meshes/Builders/sphereBuilder';
-import { CreateTorus } from '@babylonjs/core/Meshes/Builders/torusBuilder';
 import { CreateTube } from '@babylonjs/core/Meshes/Builders/tubeBuilder';
 import { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { VertexData } from '@babylonjs/core/Meshes/mesh.vertexData';
 import type { Scene } from '@babylonjs/core/scene';
 import type { Slot } from '../Materials';
 
@@ -106,8 +106,46 @@ export class ModelKit {
     this.add(mesh, o, 'y', u, u / 2);
   }
 
-  torus(o: PartOpts & { d: number; t: number; tess?: number; axis?: Axis }): void {
-    const mesh = CreateTorus(this.id(), { diameter: o.d, thickness: o.t, tessellation: o.tess ?? 32 }, this.scene);
+  /**
+   * Torus with independent ring and tube resolution (Babylon's builder uses one value for both,
+   * which wastes triangles on thin rings).
+   */
+  torus(o: PartOpts & { d: number; t: number; tess?: number; tube?: number; axis?: Axis }): void {
+    const ring = o.tess ?? 32;
+    const tube = o.tube ?? (o.t > 2 ? 12 : 8);
+    const R = o.d / 2;
+    const r = o.t / 2;
+    const positions: number[] = [];
+    const normals: number[] = [];
+    const uvs: number[] = [];
+    const indices: number[] = [];
+    for (let i = 0; i <= ring; i++) {
+      const u = (i / ring) * Math.PI * 2;
+      const cu = Math.cos(u);
+      const su = Math.sin(u);
+      for (let j = 0; j <= tube; j++) {
+        const v = (j / tube) * Math.PI * 2;
+        const cv = Math.cos(v);
+        const sv = Math.sin(v);
+        positions.push((R + r * cv) * cu, r * sv, (R + r * cv) * su);
+        normals.push(cv * cu, sv, cv * su);
+        uvs.push(i / ring, j / tube);
+      }
+    }
+    for (let i = 0; i < ring; i++) {
+      for (let j = 0; j < tube; j++) {
+        const a = i * (tube + 1) + j;
+        const b = a + tube + 1;
+        indices.push(a, a + 1, b, b, a + 1, b + 1);
+      }
+    }
+    const mesh = new Mesh(this.id(), this.scene);
+    const data = new VertexData();
+    data.positions = positions;
+    data.normals = normals;
+    data.uvs = uvs;
+    data.indices = indices;
+    data.applyToMesh(mesh);
     this.add(mesh, o, o.axis ?? 'y', (Math.PI * o.d) / 3.2, 1);
   }
 

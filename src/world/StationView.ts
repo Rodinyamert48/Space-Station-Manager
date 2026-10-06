@@ -13,7 +13,7 @@ import type { ModuleState } from '../game/state';
 import { t } from '../i18n/i18n';
 import type { EffectHandle, Effects } from './Effects';
 import type { WorldLabels } from './Labels';
-import type { ModelLibrary } from './ModelLibrary';
+import { ModelLibrary } from './ModelLibrary';
 
 export interface ShadowSink {
   addCaster(mesh: AbstractMesh): void;
@@ -31,6 +31,7 @@ interface ModuleVisual {
   sparks: EffectHandle | null;
   damageSparks: EffectHandle | null;
   shown: number;
+  frozen: boolean;
 }
 
 export const cellToWorld = (c: Vec3i, out = new Vector3()): Vector3 => out.set(c.x * CELL_SIZE, c.y * CELL_SIZE, c.z * CELL_SIZE);
@@ -101,8 +102,8 @@ export class StationView {
       if (m.type === 'solar') rotor.rotation.y = this.sunYaw - root.rotation.y;
       instances.push(...this.library.instantiate(template.rotor, rotor, `module-${m.id}-rotor`, true));
     }
-    for (const inst of instances) this.shadows.addCaster(inst);
-    const visual: ModuleVisual = { id: m.id, type: m.type, root, body, instances, rotor, scaffold: null, sparks: null, damageSparks: null, shown: 1 };
+    for (const inst of instances) if (ModelLibrary.castsShadow(inst)) this.shadows.addCaster(inst);
+    const visual: ModuleVisual = { id: m.id, type: m.type, root, body, instances, rotor, scaffold: null, sparks: null, damageSparks: null, shown: 1, frozen: false };
     this.visuals.set(m.id, visual);
     this.applyStatus(visual, m);
   }
@@ -173,6 +174,8 @@ export class StationView {
       this.linkInstances.push(...inst);
     }
     for (const m of game.station.modules) {
+      // A scaled-down construction site would leave full-size hatches floating in space.
+      if (m.status === 'constructing') continue;
       for (const dir of game.station.openPorts(m)) {
         const node = new TransformNode(`hatch-${m.id}-${dir}`, this.scene);
         node.parent = this.linkRoot;
@@ -182,7 +185,10 @@ export class StationView {
         this.linkInstances.push(...this.library.instantiate(this.library.hatch, node, node.name));
       }
     }
-    for (const inst of this.linkInstances) this.shadows.addCaster(inst);
+    for (const inst of this.linkInstances) {
+      if (ModelLibrary.castsShadow(inst)) this.shadows.addCaster(inst);
+      inst.freezeWorldMatrix();
+    }
   }
 
   update(dt: number, game: Game): void {
@@ -203,11 +209,21 @@ export class StationView {
       } else if (v.shown < 1) {
         v.shown = Math.min(1, v.shown + dt * 1.5);
         v.body.scaling.setAll(easeOutCubic(v.shown));
-      }
+      } else if (!v.frozen) this.freeze(v);
       if (v.rotor && m.status === 'active') {
         if (v.type === 'comms') v.rotor.rotation.y += dt * 0.15;
         else if (v.type === 'defense') v.rotor.rotation.y = Math.sin(this.time * 0.25 + v.id) * 1.1;
       }
+    }
+  }
+
+  /** Static modules skip world-matrix recomputation; animated rotors stay live. */
+  private freeze(v: ModuleVisual): void {
+    v.frozen = true;
+    const animated = v.type === 'comms' || v.type === 'defense' ? v.rotor : null;
+    for (const inst of v.instances) {
+      if (animated && inst.parent === animated) continue;
+      inst.freezeWorldMatrix();
     }
   }
 

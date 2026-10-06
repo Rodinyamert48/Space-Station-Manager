@@ -46,7 +46,14 @@ export class Effects {
   }
 
   private acquire(capacity: number): ParticleSystem {
-    const ps = this.pool.pop() ?? new ParticleSystem('fx', capacity, this.scene);
+    let ps: ParticleSystem | undefined;
+    // Pooled systems can be disposed by Babylon when a mesh they emitted from is disposed.
+    while (!ps && this.pool.length > 0) {
+      const candidate = this.pool.pop() as ParticleSystem;
+      if (this.scene.particleSystems.includes(candidate) && candidate.getCapacity() >= capacity) ps = candidate;
+      else if (this.scene.particleSystems.includes(candidate)) candidate.dispose();
+    }
+    ps ??= new ParticleSystem('fx', capacity, this.scene);
     ps.reset();
     this.active.add(ps);
     return ps;
@@ -54,6 +61,8 @@ export class Effects {
 
   private release(ps: ParticleSystem): void {
     ps.stop();
+    // Detach from any mesh emitter so disposing that mesh does not dispose the pooled system.
+    ps.emitter = Vector3.Zero();
     this.active.delete(ps);
     this.pool.push(ps);
   }
@@ -115,10 +124,7 @@ export class Effects {
     ps.blendMode = ParticleSystem.BLENDMODE_ADD;
     ps.targetStopDuration = 1.5;
     ps.onStoppedObservable.addOnce(() => {
-      if (this.active.has(ps)) {
-        this.active.delete(ps);
-        this.pool.push(ps);
-      }
+      if (this.active.has(ps)) this.release(ps);
     });
     ps.start();
   }

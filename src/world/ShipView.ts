@@ -15,8 +15,8 @@ import { APPROACH_HOURS, ARRIVAL_HOURS, DEPART_HOURS } from '../game/systems/Shi
 import { t } from '../i18n/i18n';
 import type { EffectHandle, Effects } from './Effects';
 import type { WorldLabels } from './Labels';
-import type { MaterialLibrary } from './Materials';
-import type { ModelLibrary, ShipTemplate } from './ModelLibrary';
+import { slotTags, type MaterialLibrary } from './Materials';
+import { ModelLibrary, type ShipTemplate } from './ModelLibrary';
 import { ModelKit } from './models/ModelKit';
 import type { ShadowSink } from './StationView';
 import { cellToWorld } from './StationView';
@@ -113,6 +113,7 @@ export class ShipView {
       mesh.material = materials.get(slot);
       mesh.isVisible = false;
       mesh.isPickable = false;
+      mesh.metadata = slotTags(slot);
       return mesh;
     });
   }
@@ -136,7 +137,7 @@ export class ShipView {
     root.rotationQuaternion = Quaternion.Identity();
     root.metadata = { shipId: ship.id };
     const instances = this.models.instantiate(template, root, `ship-${ship.id}`, true);
-    for (const inst of instances) this.shadows.addCaster(inst);
+    for (const inst of instances) if (ModelLibrary.castsShadow(inst)) this.shadows.addCaster(inst);
     const emitters = template.engines.map((e, i) => {
       const m = CreateBox(`ship-${ship.id}-engine${i}`, { size: 0.05 }, this.scene);
       m.isVisible = false;
@@ -361,6 +362,7 @@ export class ShipView {
       light.parent = root;
       light.position.set(0, 2.45, 2.7);
       light.isPickable = false;
+      light.metadata = { glow: true };
       this.berths.set(id, { moduleId: id, root, doorL, doorR, light, open: 0 });
     }
     this.syncBerthState(game);

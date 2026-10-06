@@ -10,16 +10,8 @@ export default defineConfig({
   build: {
     target: 'es2022',
     chunkSizeWarningLimit: 2500,
-    rolldownOptions: {
-      output: {
-        codeSplitting: {
-          groups: [
-            { name: 'babylon-gui', test: /node_modules[\\/]@babylonjs[\\/]gui/ },
-            { name: 'babylon', test: /node_modules[\\/]@babylonjs/ },
-          ],
-        },
-      },
-    },
+    // Babylon.js loads shaders through dynamic imports; default code splitting keeps those as
+    // small on-demand chunks so WebGL never downloads WebGPU (WGSL) shader code.
   },
   test: {
     environment: 'node',

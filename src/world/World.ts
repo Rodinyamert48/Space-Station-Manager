@@ -56,7 +56,6 @@ export class World {
   private profile: QualityProfile;
   private pipeline: DefaultRenderingPipeline | null = null;
   private glow: GlowLayer | null = null;
-  private readonly glowExcluded = new Set<Mesh>();
   private fpsLimit = 60;
   private lastFrame = performance.now();
   private elapsed = 0;
@@ -107,6 +106,11 @@ export class World {
     this.selection = new SelectionMarker(this.scene);
     for (const rock of this.env.nearRocks) rock.receiveShadows = true;
 
+    // Meshes get their metadata right after creation; tag them on the next frame.
+    this.scene.onNewMeshAddedObservable.add((mesh) => {
+      this.scene.onBeforeRenderObservable.addOnce(() => this.tagGlow(mesh));
+    });
+    this.scene.autoClear = false;
     this.applySettings(settings);
     this.installPointerHandling();
     window.addEventListener('resize', this.onResize);
@@ -120,6 +124,7 @@ export class World {
 
   /** Applies render-related settings live. */
   applySettings(settings: Settings): void {
+    this.materials.setFrozen(false);
     this.profile = QUALITY_PROFILES[settings.quality];
     const dpr = Math.min(window.devicePixelRatio || 1, this.profile.maxPixelRatio);
     this.engine.setHardwareScalingLevel(1 / Math.max(0.35, dpr * settings.resolutionScale));
@@ -131,7 +136,7 @@ export class World {
     this.shadows.configure(settings.shadows, this.profile.shadowMapSize);
     this.env.setLensFlaresEnabled(this.profile.lensFlares);
 
-    const wantPipeline = settings.quality !== 'low';
+    const wantPipeline = settings.quality === 'high' || settings.quality === 'ultra';
     if (wantPipeline && !this.pipeline) {
       const p = new DefaultRenderingPipeline('pipeline', true, this.scene, [this.camera.camera]);
       p.imageProcessingEnabled = true;
@@ -159,23 +164,29 @@ export class World {
       if (this.pipeline.chromaticAberrationEnabled) this.pipeline.chromaticAberration.aberrationAmount = 10;
     }
     this.env.setLinearOutput(this.pipeline !== null);
+    // Refreeze static materials once the new shader variants have compiled.
+    window.setTimeout(() => this.materials.setFrozen(true), 1500);
 
     if (settings.bloom && !this.glow) {
-      this.glow = new GlowLayer('glow', this.scene, { mainTextureRatio: 0.5, blurKernelSize: 32 });
+      // Only emissive meshes are rendered into the glow map: far fewer draw calls.
+      this.glow = new GlowLayer('glow', this.scene, { mainTextureRatio: settings.quality === 'medium' ? 0.35 : 0.5, blurKernelSize: 32 });
       this.glow.intensity = 0.75;
-      for (const mesh of this.scene.meshes) if (mesh.renderingGroupId === 0 && mesh instanceof Mesh) this.glow.addExcludedMesh(mesh);
-      for (const mesh of this.glowExcluded) this.glow.addExcludedMesh(mesh);
+      for (const mesh of this.scene.meshes) this.tagGlow(mesh);
     } else if (!settings.bloom && this.glow) {
       this.glow.dispose();
       this.glow = null;
     }
   }
 
-  /** Keeps a mesh out of the glow layer (holograms that should not bloom). */
+  /** Adds meshes tagged with `metadata.glow` to the glow layer's inclusion list. */
+  private tagGlow(mesh: AbstractMesh): void {
+    const glow = (mesh.metadata as { glow?: boolean } | null)?.glow;
+    if (glow && this.glow && mesh instanceof Mesh) this.glow.addIncludedOnlyMesh(mesh);
+  }
+
+  /** Keeps a hologram (build preview) out of the glow layer even if its source mesh was tagged. */
   excludeFromGlow(mesh: Mesh): void {
-    this.glowExcluded.add(mesh);
-    mesh.onDisposeObservable.addOnce(() => this.glowExcluded.delete(mesh));
-    this.glow?.addExcludedMesh(mesh);
+    this.glow?.removeIncludedOnlyMesh(mesh);
   }
 
   attachGame(game: Game): void {
@@ -202,7 +213,10 @@ export class World {
         this.build.refresh();
         this.ships.syncBerths(game);
       }),
-      bus.on('moduleCompleted', () => this.ships.syncBerths(game)),
+      bus.on('moduleCompleted', () => {
+        this.station.rebuildLinks(game);
+        this.ships.syncBerths(game);
+      }),
       bus.on('shipAdded', ({ ship }) => this.ships.addShip(ship, game)),
       bus.on('shipChanged', ({ ship }) => {
         this.ships.shipChanged(ship, game);

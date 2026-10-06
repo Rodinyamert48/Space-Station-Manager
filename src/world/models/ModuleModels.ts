@@ -238,7 +238,8 @@ function buildQuarters(k: ModelKit): number {
 function buildLab(k: ModelKit): number {
   k.cyl({ slot: 'hull', d: 4.4, h: 7.6, axis: 'z', tess: 28 });
   k.cyl({ slot: 'glass', d: 4.7, h: 2.2, axis: 'z', tess: 28 });
-  k.cyl({ slot: 'accent', d: 3.6, h: 2.0, axis: 'z', tess: 20 });
+  k.cyl({ slot: 'hullDark', d: 3.7, h: 2.0, axis: 'z', tess: 20 });
+  for (const z of [-0.6, 0, 0.6]) k.torus({ slot: 'accent', d: 3.75, t: 0.12, axis: 'z', pos: [0, 0, z], tess: 32 });
   k.torus({ slot: 'hullDark', d: 4.75, t: 0.3, axis: 'z', pos: [0, 0, 1.15], tess: 32 });
   k.torus({ slot: 'hullDark', d: 4.75, t: 0.3, axis: 'z', pos: [0, 0, -1.15], tess: 32 });
   k.cyl({ slot: 'paint', d: 4.5, h: 0.4, axis: 'z', pos: [0, 0, 2.6], tess: 28, color: '#7a4fd1' });
@@ -330,7 +331,8 @@ function buildMedical(k: ModelKit): number {
     tess: 32,
   });
   k.cyl({ slot: 'glass', d: 5.0, h: 1.4, axis: 'z', tess: 32 });
-  k.cyl({ slot: 'accent', d: 4.6, h: 1.2, axis: 'z', tess: 24 });
+  k.cyl({ slot: 'hull', d: 4.6, h: 1.2, axis: 'z', tess: 24 });
+  for (const z of [-0.35, 0.35]) k.torus({ slot: 'accent', d: 4.65, t: 0.1, axis: 'z', pos: [0, 0, z], tess: 32 });
   // Medical cross emblems.
   for (const side of [-1, 1]) {
     k.box({ slot: 'accent', w: 0.1, h: 1.4, d: 0.45, pos: [side * 2.48, 0, 2.0] });

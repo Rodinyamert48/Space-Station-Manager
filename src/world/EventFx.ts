@@ -9,7 +9,7 @@ import type { Scene } from '@babylonjs/core/scene';
 import { Rng } from '../core/Rng';
 import type { CameraController } from './CameraController';
 import type { EffectHandle, Effects } from './Effects';
-import type { MaterialLibrary } from './Materials';
+import { slotTags, type MaterialLibrary } from './Materials';
 import { ModelKit } from './models/ModelKit';
 
 interface Mover {
@@ -58,6 +58,7 @@ export class EventFx {
     k.cyl({ slot: 'accent', d: 0.7, h: 0.1, axis: 'z', pos: [0, 0, -2.15], tess: 10 });
     this.pirateTemplate = [...k.build().entries()].map(([slot, mesh]) => {
       mesh.material = slot === 'accent' ? materials.emissive('#ff5040', 1.5) : materials.get(slot);
+      mesh.metadata = slotTags(slot);
       mesh.isVisible = false;
       mesh.isPickable = false;
       return mesh;
@@ -101,6 +102,7 @@ export class EventFx {
     const mesh = CreateCylinder('bolt', { height: 3, diameter: 0.25, tessellation: 6 }, this.scene);
     mesh.material = enemy ? this.enemyBoltMat : this.boltMat;
     mesh.isPickable = false;
+    mesh.metadata = { glow: true };
     this.bolts.push({ mesh, from: from.clone(), to: to.clone(), t: 0, onHit });
   }
 

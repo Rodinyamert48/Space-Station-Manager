@@ -195,8 +195,9 @@ input, select { font-family: inherit; }
 [data-layout='mobile'] .feed-item { font-size: 13px; padding: 6px 10px; }
 [data-layout='mobile'] .mobile-nav { display: flex; position: absolute; left: 0; right: 0; bottom: 0; padding: 6px calc(4px + var(--safe-right)) calc(6px + var(--safe-bottom)) calc(4px + var(--safe-left)); gap: 2px; pointer-events: auto; background: linear-gradient(180deg, rgba(8, 15, 25, 0.9), rgba(5, 10, 17, 0.98)); border-top: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
 [data-layout='mobile'] .mobile-nav::-webkit-scrollbar { display: none; }
-.mnav-btn { flex: 1 0 52px; min-width: 52px; height: 52px; border-radius: 10px; border: 1px solid transparent; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); cursor: pointer; position: relative; }
-.mnav-btn .icon { width: 21px; height: 21px; }
+.mnav-btn { flex: 1 1 0; min-width: 0; height: 52px; border-radius: 10px; border: 1px solid transparent; background: transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); cursor: pointer; position: relative; }
+.mnav-btn .icon { width: 21px; height: 21px; flex: none; }
+.mnav-btn span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mnav-btn.active { color: var(--accent); background: rgba(95, 216, 255, 0.12); border-color: var(--line); }
 .mnav-btn .badge { top: 3px; right: 6px; }
 [data-layout='mobile'] .sheet-layer { align-items: flex-end; padding: 0; }
@@ -206,6 +207,9 @@ input, select { font-family: inherit; }
 [data-layout='mobile'] .sheet-handle { display: block; width: 44px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.25); margin: 8px auto 0; flex: none; touch-action: none; }
 [data-layout='mobile'] .win-header { touch-action: none; padding: 6px 8px 8px 14px; }
 [data-layout='mobile'] .win-body { padding: 10px 12px 16px; }
+@media (max-width: 420px) {
+  .mnav-btn { font-size: 9.5px; letter-spacing: 0; }
+}
 @media (max-width: 380px) {
   [data-layout='mobile'] .tb-rep .tb-label { display: none; }
   [data-layout='mobile'] .tb-value { font-size: 16px; }
@@ -556,7 +560,18 @@ input, select { font-family: inherit; }
 .settings-panel { display: flex; flex-direction: column; gap: 8px; }
 .set-row { display: flex; flex-direction: column; gap: 6px; padding: 4px 0; }
 .set-label { font-weight: 600; font-size: 14px; }
-@media (min-width: 900px) {
+/* Landscape phones: brand and buttons side by side so nothing scrolls off-screen. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .main-menu { flex-direction: row; gap: 32px; padding-top: calc(12px + var(--safe-top)); padding-bottom: calc(12px + var(--safe-bottom)); }
+  .main-menu .menu-brand { align-items: flex-start; text-align: left; flex: 1 1 auto; max-width: 52%; gap: 6px; }
+  .main-menu .menu-logo { width: 44px; height: 44px; border-radius: 12px; }
+  .main-menu .menu-logo .icon { width: 24px; height: 24px; }
+  .main-menu .menu-title { font-size: clamp(22px, 4.6vw, 40px); }
+  .main-menu .menu-buttons { width: min(300px, 42%); gap: 8px; }
+  .main-menu .menu-btn { padding: 10px 16px; font-size: 15px; }
+  .menu-screen { gap: 14px; padding-top: calc(12px + var(--safe-top)); padding-bottom: calc(12px + var(--safe-bottom)); }
+}
+@media (min-width: 900px) and (min-height: 501px) {
   .main-menu { align-items: flex-start; padding-left: max(6vw, 40px); }
   .main-menu .menu-brand { align-items: flex-start; text-align: left; }
   .main-menu .menu-title { font-size: clamp(32px, 4.4vw, 64px); max-width: 9em; }

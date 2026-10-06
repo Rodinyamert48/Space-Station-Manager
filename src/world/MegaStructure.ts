@@ -5,7 +5,7 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { easeOutCubic } from '../core/math';
 import type { Effects } from './Effects';
-import type { MaterialLibrary, Slot } from './Materials';
+import { SHADOW_SLOTS, slotTags, type MaterialLibrary, type Slot } from './Materials';
 import { ModelKit } from './models/ModelKit';
 import type { ShadowSink } from './StationView';
 
@@ -44,7 +44,8 @@ export class MegaStructure {
       mesh.parent = node;
       mesh.isPickable = false;
       mesh.receiveShadows = slot === 'hull' || slot === 'hullDark';
-      this.shadows.addCaster(mesh);
+      mesh.metadata = slotTags(slot);
+      if (SHADOW_SLOTS.has(slot)) this.shadows.addCaster(mesh);
       return mesh;
     });
     node.scaling.setAll(0.001);

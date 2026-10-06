@@ -61,8 +61,8 @@ function noise3(x: number, y: number, z: number, seed: number): number {
 }
 
 /** Lumpy rock: a smooth icosphere displaced by layered noise. */
-function createRock(scene: Scene, name: string, seed: number): Mesh {
-  const mesh = CreateIcoSphere(name, { radius: 1, subdivisions: 3, flat: false }, scene);
+function createRock(scene: Scene, name: string, seed: number, subdivisions = 3): Mesh {
+  const mesh = CreateIcoSphere(name, { radius: 1, subdivisions, flat: false }, scene);
   const positions = mesh.getVerticesData(VertexBuffer.PositionKind);
   const indices = mesh.getIndices();
   if (!positions || !indices) return mesh;
@@ -352,7 +352,7 @@ export class Environment {
     const kinds = 3;
     const perKind = Math.ceil(this.quality.asteroids / kinds);
     for (let k = 0; k < kinds; k++) {
-      const rock = createRock(this.scene, `rock${k}`, k * 13 + 5);
+      const rock = createRock(this.scene, `rock${k}`, k * 13 + 5, 2);
       rock.material = mat;
       rock.parent = root;
       rock.isPickable = false;

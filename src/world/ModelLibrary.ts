@@ -5,7 +5,7 @@ import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { Scene } from '@babylonjs/core/scene';
 import { MODULES, type ModuleType } from '../data/modules';
 import type { ShipTypeId } from '../data/ships';
-import { DETAIL_SLOTS, type MaterialLibrary, type Slot } from './Materials';
+import { DETAIL_SLOTS, slotTags, type MaterialLibrary, type MeshTags, type Slot } from './Materials';
 import { buildModuleModels, type ModelLibraryParts } from './models/ModuleModels';
 import { buildShipModels } from './models/ShipModels';
 import type { V3 } from './models/ModelKit';
@@ -74,7 +74,7 @@ export class ModelLibrary {
       mesh.isVisible = false;
       mesh.isPickable = false;
       mesh.receiveShadows = slot !== 'glass' && slot !== 'windows' && !slot.startsWith('light') && slot !== 'accent';
-      mesh.metadata = { slot };
+      mesh.metadata = slotTags(slot);
       if (DETAIL_SLOTS.has(slot)) mesh.addLODLevel(detailDistance, null);
       meshes.push(mesh);
       this.allSources.push(mesh);
@@ -92,6 +92,11 @@ export class ModelLibrary {
     });
   }
 
+  /** Whether instances of this source should be registered as shadow casters. */
+  static castsShadow(inst: InstancedMesh): boolean {
+    return !!(inst.sourceMesh.metadata as MeshTags | null)?.castShadow;
+  }
+
   /** Non-instanced clones used for the build-mode ghost, all with one override material. */
   cloneTemplate(template: Template, parent: TransformNode, name: string): Mesh[] {
     return template.meshes.map((src) => {
@@ -100,6 +105,7 @@ export class ModelLibrary {
       clone.isVisible = true;
       clone.isPickable = false;
       clone.receiveShadows = false;
+      clone.metadata = null;
       return clone;
     });
   }
